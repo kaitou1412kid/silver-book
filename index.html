@@ -188,7 +188,7 @@
             <!-- Search -->
             <div class="relative flex-1">
                 <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-                <input type="text" id="searchInput" oninput="renderOrders()" placeholder="Search by customer, details, or agent..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-200 placeholder-slate-500">
+                <input type="text" id="searchInput" oninput="renderOrders()" placeholder="Search by ornament name, details, or agent..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-200 placeholder-slate-500">
             </div>
 
             <div class="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
@@ -231,16 +231,16 @@
                 <input type="hidden" id="orderId">
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Customer Name -->
+                    <!-- Ornament Name -->
                     <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Customer Name *</label>
-                        <input type="text" id="customerName" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100" placeholder="e.g. Ramesh Shrestha">
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Ornament Name *</label>
+                        <input type="text" id="ornamentName" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100" placeholder="e.g. Silver Peacock Payal / Necklace">
                     </div>
 
                     <!-- Ordered By / Agent -->
                     <div>
                         <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Ordered By / Agent *</label>
-                        <input type="text" id="orderedBy" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100" placeholder="e.g. Self, Sales Counter, Agent Sunil">
+                        <input type="text" id="orderedBy" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100" placeholder="e.g. Ramesh, Sales Counter, Agent Sunil">
                     </div>
                 </div>
 
@@ -366,7 +366,7 @@
         const sampleOrders = [
             {
                 id: 'ord_101',
-                customerName: 'Anil Gurung',
+                ornamentName: 'Peacock Design Bracelet',
                 tola: 5.5,
                 quantity: 2,
                 height: 4,
@@ -382,7 +382,7 @@
             },
             {
                 id: 'ord_102',
-                customerName: 'Saraswati Sharma',
+                ornamentName: 'Pooja Thali Set',
                 tola: 12.0,
                 quantity: 1,
                 height: 10,
@@ -398,7 +398,7 @@
             },
             {
                 id: 'ord_103',
-                customerName: 'Kiran Rai',
+                ornamentName: 'Carved Silver Ring Set',
                 tola: 3.2,
                 quantity: 4,
                 height: 1.2,
@@ -483,7 +483,7 @@
                 const item = orders.find(o => o.id === editOrderId);
                 if (item) {
                     document.getElementById('orderId').value = item.id;
-                    document.getElementById('customerName').value = item.customerName;
+                    document.getElementById('ornamentName').value = item.ornamentName || item.customerName || '';
                     document.getElementById('orderedBy').value = item.orderedBy;
                     document.getElementById('tola').value = item.tola;
                     document.getElementById('quantity').value = item.quantity;
@@ -525,7 +525,7 @@
             const id = document.getElementById('orderId').value;
             const newOrderData = {
                 id: id ? id : 'ord_' + Date.now(),
-                customerName: document.getElementById('customerName').value,
+                ornamentName: document.getElementById('ornamentName').value,
                 orderedBy: document.getElementById('orderedBy').value,
                 tola: parseFloat(document.getElementById('tola').value) || 0,
                 quantity: parseInt(document.getElementById('quantity').value) || 1,
@@ -604,7 +604,8 @@
             const query = (document.getElementById('searchInput').value || '').toLowerCase();
             return orders.filter(o => {
                 const matchesStatus = currentFilter === 'All' || o.status === currentFilter;
-                const matchesSearch = o.customerName.toLowerCase().includes(query) ||
+                const ornament = (o.ornamentName || o.customerName || '').toLowerCase();
+                const matchesSearch = ornament.includes(query) ||
                                       o.orderedBy.toLowerCase().includes(query) ||
                                       (o.additionalDetails && o.additionalDetails.toLowerCase().includes(query));
                 return matchesStatus && matchesSearch;
@@ -658,7 +659,7 @@
                             <thead class="bg-slate-900/80 uppercase text-slate-400 border-b border-slate-800 font-semibold">
                                 <tr>
                                     <th class="p-4">Photo</th>
-                                    <th class="p-4">Customer</th>
+                                    <th class="p-4">Ornament Name</th>
                                     <th class="p-4">Agent / By</th>
                                     <th class="p-4">Weight & Qty</th>
                                     <th class="p-4">Dimensions</th>
@@ -677,6 +678,7 @@
         }
 
         function createOrderCardHtml(order) {
+            const displayName = order.ornamentName || order.customerName || 'Unnamed Ornament';
             const unitStr = order.dimensionUnit ? ` ${order.dimensionUnit}` : ' in';
             const rawDims = [
                 order.height ? `H: ${order.height}` : null,
@@ -692,7 +694,7 @@
                         <!-- Card Header -->
                         <div class="flex justify-between items-start mb-3">
                             <div>
-                                <h3 class="font-bold text-slate-100 text-base leading-snug">${escapeHtml(order.customerName)}</h3>
+                                <h3 class="font-bold text-slate-100 text-base leading-snug">${escapeHtml(displayName)}</h3>
                                 <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-user-tag text-[10px] mr-1"></i>${escapeHtml(order.orderedBy)}</p>
                             </div>
                             <div>
@@ -766,6 +768,7 @@
         }
 
         function createOrderRowHtml(order) {
+            const displayName = order.ornamentName || order.customerName || 'Unnamed Ornament';
             const unitStr = order.dimensionUnit ? ` ${order.dimensionUnit}` : ' in';
             const rawDims = [
                 order.height ? `H:${order.height}` : null,
@@ -782,7 +785,7 @@
                             ${order.photo ? `<img src="${order.photo}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-gem text-slate-600"></i>`}
                         </div>
                     </td>
-                    <td class="p-4 font-semibold text-slate-200">${escapeHtml(order.customerName)}</td>
+                    <td class="p-4 font-semibold text-slate-200">${escapeHtml(displayName)}</td>
                     <td class="p-4 text-slate-400">${escapeHtml(order.orderedBy)}</td>
                     <td class="p-4">
                         <span class="text-amber-300 font-bold">${order.tola} Tola</span>
@@ -829,10 +832,10 @@
                 downloadAnchor.remove();
                 showToast('JSON Backup downloaded.');
             } else if (type === 'csv') {
-                const headers = ["ID", "Customer Name", "Ordered By", "Weight (Tola)", "Quantity", "Height", "Breadth", "Length", "Unit", "Status", "Order Date", "Delivery Date", "Details"];
+                const headers = ["ID", "Ornament Name", "Ordered By", "Weight (Tola)", "Quantity", "Height", "Breadth", "Length", "Unit", "Status", "Order Date", "Delivery Date", "Details"];
                 const rows = orders.map(o => [
                     o.id,
-                    `"${o.customerName}"`,
+                    `"${o.ornamentName || o.customerName || ''}"`,
                     `"${o.orderedBy}"`,
                     o.tola,
                     o.quantity,
