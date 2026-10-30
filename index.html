@@ -1,916 +1,720 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Silver Craft - Order Management</title>
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <!-- FontAwesome Icons -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Google Fonts (Inter & Playfair Display for silver elegance) -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        silver: {
-                            50: '#f8fafc',
-                            100: '#f1f5f9',
-                            200: '#e2e8f0',
-                            300: '#cbd5e1',
-                            400: '#94a3b8',
-                            500: '#64748b',
-                            600: '#475569',
-                            700: '#334155',
-                            800: '#1e293b',
-                            900: '#0f172a',
-                        },
-                        platinum: '#E5E4E2',
-                        luster: '#E2E8F0',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        serif: ['Playfair Display', 'serif'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-            height: 8px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #0f172a;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #334155;
-            border-radius: 4px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #475569;
-        }
-        
-        .silver-gradient {
-            background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 50%, #cbd5e1 100%);
-        }
-        
-        .silver-text {
-            background: linear-gradient(135deg, #f8fafc 0%, #cbd5e1 50%, #94a3b8 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        
-        .glass-panel {
-            background: rgba(30, 41, 59, 0.7);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(226, 232, 240, 0.1);
-        }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Silver Ornament Order Manager</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
-        .glass-card {
-            background: rgba(15, 23, 42, 0.8);
-            border: 1px solid rgba(148, 163, 184, 0.15);
-            transition: all 0.25s ease-in-out;
-        }
-
-        .glass-card:hover {
-            border-color: rgba(203, 213, 225, 0.4);
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-        }
-    </style>
+  <style>
+    .glass {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+    }
+  </style>
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen font-sans antialiased flex flex-col">
+<body class="bg-slate-100 min-h-screen text-slate-800 font-sans pb-12">
 
-    <!-- Top Navigation Header -->
-    <header class="sticky top-0 z-30 glass-panel border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-            <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl silver-gradient flex items-center justify-center text-slate-950 font-bold text-xl shadow-lg shadow-slate-900/50">
-                    <i class="fa-solid font-bold fa-gem"></i>
-                </div>
-                <div>
-                    <h1 class="font-serif text-2xl font-bold tracking-tight silver-text">SilverCraft</h1>
-                    <p class="text-xs text-slate-400 font-medium">Jewelry Order Dashboard</p>
-                </div>
-            </div>
-
-            <div class="flex items-center space-x-3">
-                <button onclick="openModal()" class="flex items-center space-x-2 bg-gradient-to-r from-slate-200 to-slate-400 hover:from-white hover:to-slate-300 text-slate-900 font-semibold px-4 py-2.5 rounded-xl shadow-md transition transform active:scale-95 text-sm">
-                    <i class="fa-solid fa-plus text-xs"></i>
-                    <span>New Order</span>
-                </button>
-                <div class="relative group">
-                    <button class="p-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700 transition" title="Backup & Restore">
-                        <i class="fa-solid fa-ellipsis-vertical text-base"></i>
-                    </button>
-                    <div class="absolute right-0 mt-2 w-48 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-2 hidden group-hover:block z-50">
-                        <button onclick="exportData('json')" class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 flex items-center space-x-2">
-                            <i class="fa-solid fa-download text-slate-400"></i>
-                            <span>Export Backup (JSON)</span>
-                        </button>
-                        <button onclick="exportData('csv')" class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 flex items-center space-x-2">
-                            <i class="fa-solid fa-file-csv text-slate-400"></i>
-                            <span>Export Orders (CSV)</span>
-                        </button>
-                        <label class="w-full text-left px-4 py-2 text-xs text-slate-300 hover:bg-slate-800 flex items-center space-x-2 cursor-pointer">
-                            <i class="fa-solid fa-upload text-slate-400"></i>
-                            <span>Restore Backup</span>
-                            <input type="file" id="importFileInput" onchange="importData(event)" accept=".json" class="hidden">
-                        </label>
-                    </div>
-                </div>
-            </div>
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <div class="bg-slate-700 p-2 rounded-lg text-amber-400">
+          <i data-lucide="gem" class="w-6 h-6"></i>
         </div>
-    </header>
-
-    <!-- Main Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-
-        <!-- Summary Metrics Row -->
-        <section class="grid grid-cols-2 md:grid-cols-5 gap-4">
-            <div onclick="filterByStatus('All')" class="glass-panel p-4 rounded-2xl border-l-4 border-slate-400 cursor-pointer hover:bg-slate-800/60 transition">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Orders</p>
-                        <h3 id="statTotal" class="text-2xl font-bold text-slate-100 mt-1">0</h3>
-                    </div>
-                    <span class="p-2 bg-slate-800 text-slate-300 rounded-lg"><i class="fa-solid fa-boxes-stacked"></i></span>
-                </div>
-            </div>
-
-            <div onclick="filterByStatus('Received')" class="glass-panel p-4 rounded-2xl border-l-4 border-amber-500 cursor-pointer hover:bg-slate-800/60 transition">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-semibold text-amber-400 uppercase tracking-wider">Received</p>
-                        <h3 id="statReceived" class="text-2xl font-bold text-amber-100 mt-1">0</h3>
-                    </div>
-                    <span class="p-2 bg-amber-500/10 text-amber-400 rounded-lg"><i class="fa-solid fa-inbox"></i></span>
-                </div>
-            </div>
-
-            <div onclick="filterByStatus('Sent to Factory')" class="glass-panel p-4 rounded-2xl border-l-4 border-blue-500 cursor-pointer hover:bg-slate-800/60 transition">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-semibold text-blue-400 uppercase tracking-wider">At Factory</p>
-                        <h3 id="statFactory" class="text-2xl font-bold text-blue-100 mt-1">0</h3>
-                    </div>
-                    <span class="p-2 bg-blue-500/10 text-blue-400 rounded-lg"><i class="fa-solid fa-industry"></i></span>
-                </div>
-            </div>
-
-            <div onclick="filterByStatus('Ready')" class="glass-panel p-4 rounded-2xl border-l-4 border-emerald-500 cursor-pointer hover:bg-slate-800/60 transition">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">Ready</p>
-                        <h3 id="statReady" class="text-2xl font-bold text-emerald-100 mt-1">0</h3>
-                    </div>
-                    <span class="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg"><i class="fa-solid fa-circle-check"></i></span>
-                </div>
-            </div>
-
-            <div onclick="filterByStatus('Delivered')" class="glass-panel p-4 rounded-2xl border-l-4 border-purple-500 cursor-pointer hover:bg-slate-800/60 transition col-span-2 md:col-span-1">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-xs font-semibold text-purple-400 uppercase tracking-wider">Delivered</p>
-                        <h3 id="statDelivered" class="text-2xl font-bold text-purple-100 mt-1">0</h3>
-                    </div>
-                    <span class="p-2 bg-purple-500/10 text-purple-400 rounded-lg"><i class="fa-solid fa-truck-ram"></i></span>
-                </div>
-            </div>
-        </section>
-
-        <!-- Controls Bar: Search, Filters, View Mode Toggle -->
-        <section class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-800">
-            <!-- Search -->
-            <div class="relative flex-1">
-                <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-sm"></i>
-                <input type="text" id="searchInput" oninput="renderOrders()" placeholder="Search by ornament name, details, or agent..." class="w-full pl-10 pr-4 py-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-200 placeholder-slate-500">
-            </div>
-
-            <div class="flex items-center gap-3 overflow-x-auto pb-1 md:pb-0">
-                <!-- Status Filter Pills -->
-                <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-medium">
-                    <button onclick="filterByStatus('All')" id="filter-All" class="filter-btn px-3 py-1.5 rounded-lg transition bg-slate-800 text-slate-100">All</button>
-                    <button onclick="filterByStatus('Received')" id="filter-Received" class="filter-btn px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200">Received</button>
-                    <button onclick="filterByStatus('Sent to Factory')" id="filter-Sent to Factory" class="filter-btn px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200">At Factory</button>
-                    <button onclick="filterByStatus('Ready')" id="filter-Ready" class="filter-btn px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200">Ready</button>
-                    <button onclick="filterByStatus('Delivered')" id="filter-Delivered" class="filter-btn px-3 py-1.5 rounded-lg transition text-slate-400 hover:text-slate-200">Delivered</button>
-                </div>
-
-                <!-- View Switcher -->
-                <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-slate-400">
-                    <button onclick="setViewMode('grid')" id="viewGridBtn" class="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-200"><i class="fa-solid fa-grip"></i></button>
-                    <button onclick="setViewMode('table')" id="viewTableBtn" class="px-2.5 py-1.5 rounded-lg hover:text-slate-200"><i class="fa-solid fa-list"></i></button>
-                </div>
-            </div>
-        </section>
-
-        <!-- Orders View Container -->
-        <section id="ordersContainer">
-            <!-- Rendered dynamically -->
-        </section>
-
-    </main>
-
-    <!-- Modal Form (Add / Edit Order) -->
-    <div id="orderModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-700/80 rounded-2xl w-full max-w-2xl overflow-hidden shadow-2xl my-8 transform transition-all">
-            
-            <!-- Modal Header -->
-            <div class="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
-                <h3 id="modalTitle" class="font-serif text-xl font-bold text-slate-100">Add New Order</h3>
-                <button onclick="closeModal()" class="text-slate-400 hover:text-slate-200 p-1.5 rounded-lg hover:bg-slate-800"><i class="fa-solid fa-xmark text-lg"></i></button>
-            </div>
-
-            <!-- Modal Form -->
-            <form id="orderForm" onsubmit="handleFormSubmit(event)" class="p-6 space-y-4">
-                <input type="hidden" id="orderId">
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <!-- Ornament Name -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Ornament Name *</label>
-                        <input type="text" id="ornamentName" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100" placeholder="e.g. Silver Peacock Payal / Necklace">
-                    </div>
-
-                    <!-- Ordered By / Agent -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Ordered By / Agent *</label>
-                        <input type="text" id="orderedBy" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100" placeholder="e.g. Ramesh, Sales Counter, Agent Sunil">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                    <!-- Tola -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Weight (Tola) *</label>
-                        <input type="number" step="0.01" min="0" id="tola" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100" placeholder="0.00">
-                    </div>
-
-                    <!-- Quantity -->
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Quantity *</label>
-                        <input type="number" min="1" id="quantity" value="1" required class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100">
-                    </div>
-
-                    <!-- Status -->
-                    <div class="col-span-2 sm:col-span-1">
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Status</label>
-                        <select id="status" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100">
-                            <option value="Received">Received</option>
-                            <option value="Sent to Factory">Sent to Factory</option>
-                            <option value="Ready">Ready</option>
-                            <option value="Delivered">Delivered</option>
-                        </select>
-                    </div>
-                </div>
-
-                <!-- Dimensions -->
-                <div class="bg-slate-950/60 p-3.5 rounded-xl border border-slate-800/80">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="block text-xs font-semibold text-slate-400 uppercase tracking-wider">Dimensions</span>
-                        <!-- Dimension Unit Selector -->
-                        <div class="flex items-center space-x-2">
-                            <label for="dimensionUnit" class="text-[11px] text-slate-400 font-medium">Unit:</label>
-                            <select id="dimensionUnit" class="px-2 py-0.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200 focus:outline-none focus:border-slate-400">
-                                <option value="in">Inches (in)</option>
-                                <option value="cm">Centimeters (cm)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-3">
-                        <div>
-                            <input type="number" step="0.1" min="0" id="height" placeholder="Height" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200">
-                        </div>
-                        <div>
-                            <input type="number" step="0.1" min="0" id="breadth" placeholder="Breadth" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200">
-                        </div>
-                        <div>
-                            <input type="number" step="0.1" min="0" id="length" placeholder="Length" class="w-full px-3 py-1.5 bg-slate-900 border border-slate-800 rounded-lg text-xs text-slate-200">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Dates -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Order Date</label>
-                        <input type="date" id="orderDate" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Target Delivery Date</label>
-                        <input type="date" id="deliveryDate" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100">
-                    </div>
-                </div>
-
-                <!-- Photo Upload with Preview -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Ornament Design / Reference Photo</label>
-                    <div class="flex items-center space-x-4">
-                        <div id="photoPreviewContainer" class="w-16 h-16 rounded-xl bg-slate-950 border border-slate-800 overflow-hidden flex items-center justify-center shrink-0">
-                            <i id="photoPlaceholder" class="fa-solid fa-image text-slate-600 text-xl"></i>
-                            <img id="photoPreview" class="w-full h-full object-cover hidden" alt="Preview">
-                        </div>
-                        <div class="flex-1">
-                            <input type="file" id="photoInput" accept="image/*" onchange="previewImage(event)" class="w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 cursor-pointer">
-                            <p class="text-[10px] text-slate-500 mt-1">PNG, JPG, WEBP recommended (Stored locally)</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Additional Details -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1">Additional Details / Custom Instructions</label>
-                    <textarea id="additionalDetails" rows="2" class="w-full px-3.5 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm focus:outline-none focus:border-slate-400 text-slate-100" placeholder="e.g. Specific engraving text, hook preference, polish type..."></textarea>
-                </div>
-
-                <!-- Actions -->
-                <div class="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-                    <button type="button" onclick="closeModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold">Cancel</button>
-                    <button type="submit" class="px-5 py-2 bg-gradient-to-r from-slate-200 to-slate-400 hover:from-white hover:to-slate-300 text-slate-950 rounded-xl text-xs font-bold shadow-md">Save Order</button>
-                </div>
-            </form>
+        <div>
+          <h1 class="text-xl font-bold tracking-tight">Silver Craft Manager</h1>
+          <p class="text-xs text-slate-400">Firebase Firestore + Google Drive Images</p>
         </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button id="btn-config" onclick="toggleConfigModal()" class="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-xs px-3 py-2 rounded-md border border-slate-700 transition">
+          <i data-lucide="settings" class="w-4 h-4 text-slate-400"></i>
+          <span>Firebase Setup</span>
+          <span id="db-status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
+        </button>
+        <button onclick="openModal()" class="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-sm px-4 py-2 rounded-md shadow transition">
+          <i data-lucide="plus" class="w-4 h-4"></i>
+          <span>New Order</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 mt-6">
+    
+    <!-- STATS OVERVIEW -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-xs text-slate-500 font-medium">Total Orders</div>
+        <div id="stat-total" class="text-2xl font-bold text-slate-900 mt-1">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-xs text-amber-600 font-medium">Sent to Factory</div>
+        <div id="stat-factory" class="text-2xl font-bold text-amber-600 mt-1">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-xs text-emerald-600 font-medium">Ready Items</div>
+        <div id="stat-ready" class="text-2xl font-bold text-emerald-600 mt-1">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-xs text-indigo-600 font-medium">Total Weight (Tola)</div>
+        <div id="stat-weight" class="text-2xl font-bold text-indigo-600 mt-1">0</div>
+      </div>
     </div>
 
-    <!-- Image Modal for Full View -->
-    <div id="imageModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-md hidden" onclick="closeImageModal()">
-        <div class="relative max-w-3xl max-h-[90vh] bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden p-2">
-            <img id="fullSizeImage" src="" class="max-w-full max-h-[85vh] object-contain rounded-xl" alt="Design Photo">
-            <button onclick="closeImageModal()" class="absolute top-4 right-4 bg-slate-900/80 text-white w-8 h-8 rounded-full flex items-center justify-center hover:bg-slate-800"><i class="fa-solid fa-xmark"></i></button>
+    <!-- CONTROLS & FILTER BAR -->
+    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="relative w-full md:w-80">
+        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+        <input type="text" id="search-input" oninput="renderOrders()" placeholder="Search ornament or customer..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+        <select id="filter-factory" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
+          <option value="ALL">All Factory Status</option>
+          <option value="YES">Sent to Factory</option>
+          <option value="NO">Not Sent Yet</option>
+        </select>
+
+        <select id="filter-ready" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
+          <option value="ALL">All Readiness</option>
+          <option value="YES">Ready</option>
+          <option value="NO">In Progress</option>
+        </select>
+
+        <div class="flex border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+          <button id="view-grid-btn" onclick="setViewMode('grid')" class="p-2 bg-white text-slate-900 shadow-sm"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
+          <button id="view-table-btn" onclick="setViewMode('table')" class="p-2 text-slate-500"><i data-lucide="list" class="w-4 h-4"></i></button>
         </div>
+      </div>
     </div>
 
-    <!-- Toast Notification Message Box -->
-    <div id="toast" class="fixed bottom-5 right-5 z-50 bg-slate-800 text-slate-100 px-4 py-3 rounded-xl border border-slate-700 shadow-2xl flex items-center space-x-3 transition-opacity duration-300 opacity-0 pointer-events-none">
-        <span id="toastIcon" class="text-emerald-400"><i class="fa-solid fa-circle-check"></i></span>
-        <span id="toastMessage" class="text-xs font-medium">Notification message</span>
+    <!-- ORDERS CONTAINER -->
+    <div id="orders-container"></div>
+
+  </main>
+
+  <!-- SINGLE ORDER VIEW MODAL -->
+  <div id="view-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <div>
+          <h3 id="view-ornament-name" class="font-bold text-slate-900 text-lg">Ornament Details</h3>
+          <p class="text-xs text-slate-400">Order ID: <span id="view-order-id" class="font-mono text-slate-600"></span></p>
+        </div>
+        <button onclick="closeViewModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+
+      <div class="p-6 overflow-y-auto space-y-6">
+        <!-- IMAGE PREVIEW -->
+        <div id="view-image-container" class="relative w-full h-64 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- STATUS BADGES -->
+        <div class="flex gap-2">
+          <span id="view-factory-badge" class="text-xs font-semibold px-3 py-1 rounded-full border"></span>
+          <span id="view-ready-badge" class="text-xs font-semibold px-3 py-1 rounded-full border"></span>
+        </div>
+
+        <!-- SPECIFICATIONS GRID -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs">
+          <div>
+            <span class="text-slate-400 block mb-0.5">Ordered By</span>
+            <span id="view-order-by" class="font-bold text-slate-800 text-sm"></span>
+          </div>
+          <div>
+            <span class="text-slate-400 block mb-0.5">Weight</span>
+            <span id="view-tola" class="font-bold text-indigo-600 text-sm"></span>
+          </div>
+          <div>
+            <span class="text-slate-400 block mb-0.5">Quantity</span>
+            <span id="view-quantity" class="font-bold text-slate-800 text-sm"></span>
+          </div>
+          <div class="col-span-2 sm:col-span-3">
+            <span class="text-slate-400 block mb-0.5">Dimensions (H × B × L)</span>
+            <span id="view-dimensions" class="font-bold text-slate-800 text-sm"></span>
+          </div>
+        </div>
+
+        <!-- ADDITIONAL DETAILS -->
+        <div>
+          <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Additional Details & Instructions</h4>
+          <div id="view-details" class="text-sm text-slate-700 bg-amber-50/60 p-4 rounded-xl border border-amber-100 whitespace-pre-wrap leading-relaxed"></div>
+        </div>
+      </div>
+
+      <div class="px-6 py-4 border-t border-slate-100 bg-slate-50 flex justify-between items-center">
+        <button id="view-edit-btn" class="flex items-center gap-1.5 px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-semibold shadow">
+          <i data-lucide="edit-2" class="w-3.5 h-3.5"></i> Edit Order
+        </button>
+        <button onclick="closeViewModal()" class="px-4 py-2 border border-slate-200 rounded-xl text-xs font-medium text-slate-600 hover:bg-white">Close</button>
+      </div>
     </div>
+  </div>
 
-    <!-- Application Script -->
-    <script>
-        // Storage Key
-        const STORAGE_KEY = 'silvercraft_orders_db_v1';
+  <!-- ADD / EDIT ORDER MODAL -->
+  <div id="order-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+      <div class="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+        <h3 id="modal-title" class="font-bold text-slate-900 text-lg">Add New Order</h3>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
 
-        // State Management
-        let orders = [];
-        let currentFilter = 'All';
-        let currentViewMode = 'grid'; // 'grid' or 'table'
-        let currentPhotoBase64 = null;
+      <form id="order-form" onsubmit="handleFormSubmit(event)" class="p-6 overflow-y-auto space-y-4">
+        <input type="hidden" id="order-id">
 
-        // Sample Data for first-time load
-        const sampleOrders = [
-            {
-                id: 'ord_101',
-                ornamentName: 'Peacock Design Bracelet',
-                tola: 5.5,
-                quantity: 2,
-                height: 4,
-                breadth: 2.5,
-                length: 0.5,
-                dimensionUnit: 'in',
-                photo: '',
-                additionalDetails: 'Traditional peacock design bracelet with matte finish.',
-                orderedBy: 'Self',
-                orderDate: '2026-10-25',
-                deliveryDate: '2026-11-05',
-                status: 'Received'
-            },
-            {
-                id: 'ord_102',
-                ornamentName: 'Pooja Thali Set',
-                tola: 12.0,
-                quantity: 1,
-                height: 10,
-                breadth: 10,
-                length: 1,
-                dimensionUnit: 'cm',
-                photo: '',
-                additionalDetails: 'Silver Pooja Thali set with intricate floral border carving.',
-                orderedBy: 'Counter Agent Bikash',
-                orderDate: '2026-10-20',
-                deliveryDate: '2026-10-31',
-                status: 'Sent to Factory'
-            },
-            {
-                id: 'ord_103',
-                ornamentName: 'Carved Silver Ring Set',
-                tola: 3.2,
-                quantity: 4,
-                height: 1.2,
-                breadth: 1.2,
-                length: 1.2,
-                dimensionUnit: 'in',
-                photo: '',
-                additionalDetails: 'Matching family ring set, high polish finish.',
-                orderedBy: 'Direct Order',
-                orderDate: '2026-10-18',
-                deliveryDate: '2026-10-28',
-                status: 'Ready'
-            }
-        ];
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Ornament Name *</label>
+            <input type="text" id="ornament-name" required placeholder="e.g. Silver Bangle / Necklace" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
 
-        // Initialization
-        window.addEventListener('DOMContentLoaded', () => {
-            loadOrdersFromStorage();
-            renderOrders();
-            updateMetrics();
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Ordered By (Customer Name) *</label>
+            <input type="text" id="order-by" required placeholder="Customer or Client Name" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Weight (Tola) *</label>
+            <input type="number" step="0.01" id="tola" required placeholder="0.00" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 mb-1">Quantity *</label>
+            <input type="number" id="quantity" min="1" value="1" required class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          </div>
+        </div>
+
+        <!-- DIMENSIONS AREA -->
+        <div class="border border-slate-100 bg-slate-50/50 p-4 rounded-xl space-y-3">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-semibold text-slate-700">Dimensions</span>
+            <select id="dimension-unit" class="text-xs border border-slate-200 rounded px-2 py-1 bg-white">
+              <option value="in">Inches (in)</option>
+              <option value="cm">Centimeters (cm)</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1">Height</label>
+              <input type="number" step="0.01" id="height" placeholder="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1">Breadth</label>
+              <input type="number" step="0.01" id="breadth" placeholder="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-1">Length</label>
+              <input type="number" step="0.01" id="length" placeholder="0" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 bg-white">
+            </div>
+          </div>
+        </div>
+
+        <!-- GOOGLE DRIVE IMAGE LINK FIELD -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Google Drive Image URL</label>
+          <input type="url" id="drive-url" placeholder="https://drive.google.com/file/d/.../view" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
+          <p class="text-[11px] text-slate-400 mt-1">Paste a shared Google Drive view link for the photo.</p>
+        </div>
+
+        <!-- ADDITIONAL DETAILS -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Additional Details / Instructions</label>
+          <textarea id="additional-details" rows="3" placeholder="Engraving notes, purity requirements, special patterns..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
+        </div>
+
+        <!-- STATUS TOGGLES -->
+        <div class="grid grid-cols-2 gap-4 pt-2">
+          <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
+            <input type="checkbox" id="sent-to-factory" class="w-4 h-4 text-amber-500 rounded focus:ring-amber-400">
+            <div>
+              <div class="text-xs font-semibold text-slate-800">Sent to Factory</div>
+              <div class="text-[10px] text-slate-400">Item is being produced</div>
+            </div>
+          </label>
+
+          <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
+            <input type="checkbox" id="ready-status" class="w-4 h-4 text-emerald-500 rounded focus:ring-emerald-400">
+            <div>
+              <div class="text-xs font-semibold text-slate-800">Ready</div>
+              <div class="text-[10px] text-slate-400">Finished & ready for client</div>
+            </div>
+          </label>
+        </div>
+
+        <div class="pt-4 flex gap-3">
+          <button type="button" onclick="closeModal()" class="w-1/2 py-2.5 border border-slate-200 rounded-xl text-slate-600 font-medium text-sm hover:bg-slate-50">Cancel</button>
+          <button type="submit" class="w-1/2 py-2.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold rounded-xl text-sm shadow">Save Order</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- FIREBASE CONFIG MODAL -->
+  <div id="config-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6">
+      <h3 class="font-bold text-slate-900 text-lg mb-2">Firebase Firestore Settings</h3>
+      <p class="text-xs text-slate-500 mb-4">Paste your Firebase web app configuration below to sync order data.</p>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">apiKey</label>
+          <input type="text" id="cfg-apiKey" class="w-full px-3 py-2 border rounded-lg font-mono text-xs">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">authDomain</label>
+          <input type="text" id="cfg-authDomain" class="w-full px-3 py-2 border rounded-lg font-mono text-xs">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">projectId</label>
+          <input type="text" id="cfg-projectId" class="w-full px-3 py-2 border rounded-lg font-mono text-xs">
+        </div>
+        <div>
+          <label class="block font-medium text-slate-600 mb-1">storageBucket</label>
+          <input type="text" id="cfg-storageBucket" class="w-full px-3 py-2 border rounded-lg font-mono text-xs">
+        </div>
+      </div>
+
+      <div class="mt-6 flex gap-3">
+        <button onclick="toggleConfigModal()" class="w-1/2 py-2 border rounded-lg text-xs font-medium text-slate-600">Cancel</button>
+        <button onclick="saveFirebaseConfig()" class="w-1/2 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-medium">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let orders = [];
+    let db = null;
+    let viewMode = 'grid';
+
+    // INITIALIZATION
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      initFirebase();
+    });
+
+    function initFirebase() {
+      const savedConfig = localStorage.getItem('firebase_config');
+      if (savedConfig) {
+        try {
+          const config = JSON.parse(savedConfig);
+          if (!firebase.apps.length) {
+            firebase.initializeApp(config);
+          }
+          db = firebase.firestore();
+          document.getElementById('db-status-dot').className = "w-2 h-2 rounded-full bg-emerald-500";
+          listenToFirestore();
+        } catch (e) {
+          console.error("Firebase connection error:", e);
+          loadLocalFallback();
+        }
+      } else {
+        loadLocalFallback();
+      }
+    }
+
+    function loadLocalFallback() {
+      document.getElementById('db-status-dot').className = "w-2 h-2 rounded-full bg-amber-500";
+      const local = localStorage.getItem('silver_orders_backup');
+      orders = local ? JSON.parse(local) : [];
+      renderOrders();
+    }
+
+    function listenToFirestore() {
+      if (!db) return;
+      db.collection('orders').onSnapshot(snapshot => {
+        orders = [];
+        snapshot.forEach(doc => {
+          orders.push({ id: doc.id, ...doc.data() });
         });
+        localStorage.setItem('silver_orders_backup', JSON.stringify(orders));
+        renderOrders();
+      }, err => {
+        console.error("Firestore listener error:", err);
+        loadLocalFallback();
+      });
+    }
 
-        // Local Storage Handlers
-        function loadOrdersFromStorage() {
-            const raw = localStorage.getItem(STORAGE_KEY);
-            if (raw) {
-                try {
-                    orders = JSON.parse(raw);
-                } catch (e) {
-                    console.error('Error parsing stored orders', e);
-                    orders = sampleOrders;
-                }
-            } else {
-                orders = sampleOrders;
-                saveOrdersToStorage();
-            }
-        }
+    // HELPER: GOOGLE DRIVE LINK CONVERTER
+    function getDriveThumbnail(url) {
+      if (!url) return null;
+      let fileId = null;
+      
+      const match1 = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+      if (match1) fileId = match1[1];
+      
+      const match2 = url.match(/id=([a-zA-Z0-9_-]+)/);
+      if (match2) fileId = match2[1];
 
-        function saveOrdersToStorage() {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(orders));
-        }
+      if (fileId) {
+        return `https://drive.google.com/thumbnail?id=${fileId}&sz=w800`;
+      }
+      return url;
+    }
 
-        // Metrics Calculator
-        function updateMetrics() {
-            document.getElementById('statTotal').innerText = orders.length;
-            document.getElementById('statReceived').innerText = orders.filter(o => o.status === 'Received').length;
-            document.getElementById('statFactory').innerText = orders.filter(o => o.status === 'Sent to Factory').length;
-            document.getElementById('statReady').innerText = orders.filter(o => o.status === 'Ready').length;
-            document.getElementById('statDelivered').innerText = orders.filter(o => o.status === 'Delivered').length;
-        }
+    // RENDER ORDER LIST
+    function renderOrders() {
+      const search = document.getElementById('search-input').value.toLowerCase();
+      const filterFactory = document.getElementById('filter-factory').value;
+      const filterReady = document.getElementById('filter-ready').value;
 
-        // Image Base64 Handler
-        function previewImage(event) {
-            const file = event.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    currentPhotoBase64 = e.target.result;
-                    const preview = document.getElementById('photoPreview');
-                    const placeholder = document.getElementById('photoPlaceholder');
-                    preview.src = currentPhotoBase64;
-                    preview.classList.remove('hidden');
-                    placeholder.classList.add('hidden');
-                };
-                reader.readAsDataURL(file);
-            }
-        }
+      const filtered = orders.filter(item => {
+        const matchesSearch = (item.ornamentName || '').toLowerCase().includes(search) ||
+                              (item.orderBy || '').toLowerCase().includes(search);
+        
+        const matchesFactory = filterFactory === 'ALL' ? true :
+          (filterFactory === 'YES' ? item.sentToFactory : !item.sentToFactory);
 
-        // Modal Controls
-        function openModal(editOrderId = null) {
-            const modal = document.getElementById('orderModal');
-            const form = document.getElementById('orderForm');
-            const title = document.getElementById('modalTitle');
+        const matchesReady = filterReady === 'ALL' ? true :
+          (filterReady === 'YES' ? item.isReady : !item.isReady);
 
-            form.reset();
-            currentPhotoBase64 = null;
-            document.getElementById('photoPreview').classList.add('hidden');
-            document.getElementById('photoPlaceholder').classList.remove('hidden');
+        return matchesSearch && matchesFactory && matchesReady;
+      });
 
-            if (editOrderId) {
-                title.innerText = "Edit Order";
-                const item = orders.find(o => o.id === editOrderId);
-                if (item) {
-                    document.getElementById('orderId').value = item.id;
-                    document.getElementById('ornamentName').value = item.ornamentName || item.customerName || '';
-                    document.getElementById('orderedBy').value = item.orderedBy;
-                    document.getElementById('tola').value = item.tola;
-                    document.getElementById('quantity').value = item.quantity;
-                    document.getElementById('status').value = item.status;
-                    document.getElementById('height').value = item.height || '';
-                    document.getElementById('breadth').value = item.breadth || '';
-                    document.getElementById('length').value = item.length || '';
-                    document.getElementById('dimensionUnit').value = item.dimensionUnit || 'in';
-                    document.getElementById('orderDate').value = item.orderDate || '';
-                    document.getElementById('deliveryDate').value = item.deliveryDate || '';
-                    document.getElementById('additionalDetails').value = item.additionalDetails || '';
+      updateStats();
 
-                    if (item.photo) {
-                        currentPhotoBase64 = item.photo;
-                        const preview = document.getElementById('photoPreview');
-                        preview.src = item.photo;
-                        preview.classList.remove('hidden');
-                        document.getElementById('photoPlaceholder').classList.add('hidden');
-                    }
-                }
-            } else {
-                title.innerText = "Add New Order";
-                document.getElementById('orderId').value = '';
-                document.getElementById('dimensionUnit').value = 'in';
-                document.getElementById('orderDate').value = new Date().toISOString().split('T')[0];
-            }
+      const container = document.getElementById('orders-container');
+      
+      if (filtered.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
+            <i data-lucide="package-open" class="w-12 h-12 text-slate-300 mx-auto mb-3"></i>
+            <h4 class="font-semibold text-slate-700">No orders found</h4>
+            <p class="text-xs text-slate-400 mt-1">Add a new order or adjust your search filters.</p>
+          </div>`;
+        lucide.createIcons();
+        return;
+      }
 
-            modal.classList.remove('hidden');
-        }
-
-        function closeModal() {
-            document.getElementById('orderModal').classList.add('hidden');
-        }
-
-        // Form Submit Handler
-        function handleFormSubmit(event) {
-            event.preventDefault();
-
-            const id = document.getElementById('orderId').value;
-            const newOrderData = {
-                id: id ? id : 'ord_' + Date.now(),
-                ornamentName: document.getElementById('ornamentName').value,
-                orderedBy: document.getElementById('orderedBy').value,
-                tola: parseFloat(document.getElementById('tola').value) || 0,
-                quantity: parseInt(document.getElementById('quantity').value) || 1,
-                status: document.getElementById('status').value,
-                height: parseFloat(document.getElementById('height').value) || '',
-                breadth: parseFloat(document.getElementById('breadth').value) || '',
-                length: parseFloat(document.getElementById('length').value) || '',
-                dimensionUnit: document.getElementById('dimensionUnit').value || 'in',
-                orderDate: document.getElementById('orderDate').value,
-                deliveryDate: document.getElementById('deliveryDate').value,
-                additionalDetails: document.getElementById('additionalDetails').value,
-                photo: currentPhotoBase64 || (id ? (orders.find(o => o.id === id)?.photo || '') : '')
-            };
-
-            if (id) {
-                const idx = orders.findIndex(o => o.id === id);
-                if (idx !== -1) orders[idx] = newOrderData;
-                showToast('Order updated successfully!');
-            } else {
-                orders.unshift(newOrderData);
-                showToast('New order created successfully!');
-            }
-
-            saveOrdersToStorage();
-            updateMetrics();
-            renderOrders();
-            closeModal();
-        }
-
-        // Fast Status Change Handler
-        function setOrderStatus(id, newStatus) {
-            const item = orders.find(o => o.id === id);
-            if (item) {
-                item.status = newStatus;
-                saveOrdersToStorage();
-                updateMetrics();
-                renderOrders();
-                showToast(`Order status updated to "${newStatus}"`);
-            }
-        }
-
-        // Delete Order
-        function deleteOrder(id) {
-            if (confirm("Are you sure you want to delete this order?")) {
-                orders = orders.filter(o => o.id !== id);
-                saveOrdersToStorage();
-                updateMetrics();
-                renderOrders();
-                showToast('Order deleted.', 'danger');
-            }
-        }
-
-        // Filter & Search Logic
-        function filterByStatus(status) {
-            currentFilter = status;
-            document.querySelectorAll('.filter-btn').forEach(btn => {
-                btn.classList.remove('bg-slate-800', 'text-slate-100');
-                btn.classList.add('text-slate-400');
-            });
-            const activeBtn = document.getElementById(`filter-${status}`);
-            if (activeBtn) {
-                activeBtn.classList.add('bg-slate-800', 'text-slate-100');
-                activeBtn.classList.remove('text-slate-400');
-            }
-            renderOrders();
-        }
-
-        function setViewMode(mode) {
-            currentViewMode = mode;
-            document.getElementById('viewGridBtn').className = mode === 'grid' ? 'px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-200' : 'px-2.5 py-1.5 rounded-lg hover:text-slate-200';
-            document.getElementById('viewTableBtn').className = mode === 'table' ? 'px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-200' : 'px-2.5 py-1.5 rounded-lg hover:text-slate-200';
-            renderOrders();
-        }
-
-        function getFilteredOrders() {
-            const query = (document.getElementById('searchInput').value || '').toLowerCase();
-            return orders.filter(o => {
-                const matchesStatus = currentFilter === 'All' || o.status === currentFilter;
-                const ornament = (o.ornamentName || o.customerName || '').toLowerCase();
-                const matchesSearch = ornament.includes(query) ||
-                                      o.orderedBy.toLowerCase().includes(query) ||
-                                      (o.additionalDetails && o.additionalDetails.toLowerCase().includes(query));
-                return matchesStatus && matchesSearch;
-            });
-        }
-
-        // Status Badge UI Helper
-        function getStatusBadgeHtml(status) {
-            switch(status) {
-                case 'Received':
-                    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20"><i class="fa-solid fa-clock mr-1.5 text-[10px]"></i>Received</span>`;
-                case 'Sent to Factory':
-                    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20"><i class="fa-solid fa-industry mr-1.5 text-[10px]"></i>At Factory</span>`;
-                case 'Ready':
-                    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"><i class="fa-solid fa-circle-check mr-1.5 text-[10px]"></i>Ready</span>`;
-                case 'Delivered':
-                    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20"><i class="fa-solid fa-truck-ram mr-1.5 text-[10px]"></i>Delivered</span>`;
-                default:
-                    return `<span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-500/10 text-slate-400 border border-slate-500/20">${status}</span>`;
-            }
-        }
-
-        // Render Cards / Table
-        function renderOrders() {
-            const filtered = getFilteredOrders();
-            const container = document.getElementById('ordersContainer');
-
-            if (filtered.length === 0) {
-                container.innerHTML = `
-                    <div class="glass-panel text-center py-16 px-4 rounded-2xl">
-                        <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-800 flex items-center justify-center text-slate-500 text-2xl">
-                            <i class="fa-solid fa-box-open"></i>
-                        </div>
-                        <h3 class="text-base font-semibold text-slate-300">No Orders Found</h3>
-                        <p class="text-xs text-slate-500 mt-1">Try tweaking your search filter or create a new order.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            if (currentViewMode === 'grid') {
-                container.innerHTML = `
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        ${filtered.map(order => createOrderCardHtml(order)).join('')}
-                    </div>
-                `;
-            } else {
-                container.innerHTML = `
-                    <div class="glass-panel rounded-2xl overflow-x-auto">
-                        <table class="w-full text-left text-xs text-slate-300">
-                            <thead class="bg-slate-900/80 uppercase text-slate-400 border-b border-slate-800 font-semibold">
-                                <tr>
-                                    <th class="p-4">Photo</th>
-                                    <th class="p-4">Ornament Name</th>
-                                    <th class="p-4">Agent / By</th>
-                                    <th class="p-4">Weight & Qty</th>
-                                    <th class="p-4">Dimensions</th>
-                                    <th class="p-4">Target Date</th>
-                                    <th class="p-4">Status</th>
-                                    <th class="p-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-slate-800/60">
-                                ${filtered.map(order => createOrderRowHtml(order)).join('')}
-                            </tbody>
-                        </table>
-                    </div>
-                `;
-            }
-        }
-
-        function createOrderCardHtml(order) {
-            const displayName = order.ornamentName || order.customerName || 'Unnamed Ornament';
-            const unitStr = order.dimensionUnit ? ` ${order.dimensionUnit}` : ' in';
-            const rawDims = [
-                order.height ? `H: ${order.height}` : null,
-                order.breadth ? `B: ${order.breadth}` : null,
-                order.length ? `L: ${order.length}` : null
-            ].filter(Boolean).join(' × ');
-            
-            const dims = rawDims ? `${rawDims}${unitStr}` : null;
-
-            return `
-                <div class="glass-card rounded-2xl p-5 flex flex-col justify-between space-y-4">
-                    <div>
-                        <!-- Card Header -->
-                        <div class="flex justify-between items-start mb-3">
-                            <div>
-                                <h3 class="font-bold text-slate-100 text-base leading-snug">${escapeHtml(displayName)}</h3>
-                                <p class="text-xs text-slate-400 mt-0.5"><i class="fa-solid fa-user-tag text-[10px] mr-1"></i>${escapeHtml(order.orderedBy)}</p>
-                            </div>
-                            <div>
-                                ${getStatusBadgeHtml(order.status)}
-                            </div>
-                        </div>
-
-                        <!-- Image & Specs Banner -->
-                        <div class="flex gap-3 bg-slate-950/60 p-3 rounded-xl border border-slate-800/80 my-3">
-                            <div class="w-20 h-20 bg-slate-900 rounded-lg overflow-hidden shrink-0 border border-slate-800 flex items-center justify-center cursor-pointer" onclick="openImageModal('${order.photo || ''}')">
-                                ${order.photo 
-                                    ? `<img src="${order.photo}" class="w-full h-full object-cover hover:scale-105 transition" alt="Design">` 
-                                    : `<i class="fa-solid fa-gem text-slate-600 text-2xl"></i>`
-                                }
-                            </div>
-                            <div class="flex-1 text-xs space-y-1.5 flex flex-col justify-center">
-                                <div class="flex justify-between">
-                                    <span class="text-slate-400">Weight:</span>
-                                    <span class="font-bold text-amber-300">${order.tola} Tola</span>
-                                </div>
-                                <div class="flex justify-between">
-                                    <span class="text-slate-400">Quantity:</span>
-                                    <span class="font-semibold text-slate-200">${order.quantity} pcs</span>
-                                </div>
-                                ${dims ? `
-                                <div class="flex justify-between">
-                                    <span class="text-slate-400">Dim:</span>
-                                    <span class="text-slate-300 font-mono text-[11px]">${dims}</span>
-                                </div>` : ''}
-                            </div>
-                        </div>
-
-                        <!-- Details & Dates -->
-                        ${order.additionalDetails ? `
-                            <p class="text-xs text-slate-400 line-clamp-2 bg-slate-900/30 p-2.5 rounded-lg border border-slate-800/40 mb-3 italic">
-                                "${escapeHtml(order.additionalDetails)}"
-                            </p>
-                        ` : ''}
-
-                        <div class="flex justify-between items-center text-[11px] text-slate-400 pt-1">
-                            <span><i class="fa-regular fa-calendar mr-1"></i>Order: ${order.orderDate || 'N/A'}</span>
-                            <span><i class="fa-solid fa-truck-fast mr-1"></i>Target: ${order.deliveryDate || 'N/A'}</span>
-                        </div>
-                    </div>
-
-                    <!-- Workflow Fast Buttons -->
-                    <div class="pt-3 border-t border-slate-800/80 flex flex-col space-y-2">
-                        <div class="grid grid-cols-2 gap-2">
-                            <button onclick="setOrderStatus('${order.id}', 'Sent to Factory')" class="px-2.5 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-blue-300 text-xs font-medium transition flex items-center justify-center space-x-1">
-                                <i class="fa-solid fa-industry text-[10px]"></i>
-                                <span>Sent to Factory</span>
-                            </button>
-                            <button onclick="setOrderStatus('${order.id}', 'Ready')" class="px-2.5 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-xs font-medium transition flex items-center justify-center space-x-1">
-                                <i class="fa-solid fa-circle-check text-[10px]"></i>
-                                <span>Set Ready</span>
-                            </button>
-                        </div>
-                        
-                        <div class="flex justify-between items-center pt-1">
-                            <button onclick="setOrderStatus('${order.id}', 'Delivered')" class="text-[11px] text-purple-400 hover:text-purple-300 font-medium">
-                                <i class="fa-solid fa-check-double mr-1"></i>Mark Delivered
-                            </button>
-                            <div class="flex space-x-2">
-                                <button onclick="openModal('${order.id}')" class="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-800 rounded-lg"><i class="fa-solid fa-pen-to-square"></i></button>
-                                <button onclick="deleteOrder('${order.id}')" class="p-1.5 text-red-400/80 hover:text-red-400 hover:bg-slate-800 rounded-lg"><i class="fa-solid fa-trash-can"></i></button>
-                            </div>
-                        </div>
-                    </div>
+      if (viewMode === 'grid') {
+        container.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6";
+        container.innerHTML = filtered.map(item => `
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col hover:shadow-md transition">
+            <div onclick="viewSingleOrder('${item.id}')" class="relative h-48 bg-slate-100 border-b border-slate-100 flex items-center justify-center overflow-hidden cursor-pointer group">
+              ${item.driveUrl ? `
+                <img src="${getDriveThumbnail(item.driveUrl)}" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" onerror="this.src=''; this.onerror=null; this.parentElement.innerHTML='<div class=\'text-slate-400 text-xs flex flex-col items-center\'><i data-lucide=\'image-off\' class=\'w-8 h-8 mb-1\' ></i>Image Unavailable</div>'; lucide.createIcons();">
+              ` : `
+                <div class="text-slate-300 flex flex-col items-center">
+                  <i data-lucide="gem" class="w-10 h-10 mb-1"></i>
+                  <span class="text-xs">No Photo</span>
                 </div>
-            `;
-        }
+              `}
+              <div class="absolute top-3 right-3 flex gap-1">
+                <span class="text-[10px] font-semibold px-2.5 py-1 rounded-full ${item.sentToFactory ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600'}">
+                  ${item.sentToFactory ? 'Factory' : 'Pending'}
+                </span>
+                <span class="text-[10px] font-semibold px-2.5 py-1 rounded-full ${item.isReady ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}">
+                  ${item.isReady ? 'Ready' : 'In Progress'}
+                </span>
+              </div>
+            </div>
 
-        function createOrderRowHtml(order) {
-            const displayName = order.ornamentName || order.customerName || 'Unnamed Ornament';
-            const unitStr = order.dimensionUnit ? ` ${order.dimensionUnit}` : ' in';
-            const rawDims = [
-                order.height ? `H:${order.height}` : null,
-                order.breadth ? `B:${order.breadth}` : null,
-                order.length ? `L:${order.length}` : null
-            ].filter(Boolean).join('×');
-            
-            const dims = rawDims ? `${rawDims}${unitStr}` : null;
+            <div class="p-5 flex-1 flex flex-col justify-between">
+              <div onclick="viewSingleOrder('${item.id}')" class="cursor-pointer">
+                <div class="flex justify-between items-start">
+                  <h3 class="font-bold text-slate-900 text-base leading-snug hover:text-amber-600 transition">${item.ornamentName}</h3>
+                  <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">${item.tola} Tola</span>
+                </div>
+                <p class="text-xs text-slate-500 mt-1">Client: <span class="font-medium text-slate-700">${item.orderBy}</span></p>
 
-            return `
-                <tr class="hover:bg-slate-800/40">
-                    <td class="p-4">
-                        <div class="w-10 h-10 bg-slate-900 rounded-lg overflow-hidden border border-slate-800 flex items-center justify-center cursor-pointer" onclick="openImageModal('${order.photo || ''}')">
-                            ${order.photo ? `<img src="${order.photo}" class="w-full h-full object-cover">` : `<i class="fa-solid fa-gem text-slate-600"></i>`}
-                        </div>
-                    </td>
-                    <td class="p-4 font-semibold text-slate-200">${escapeHtml(displayName)}</td>
-                    <td class="p-4 text-slate-400">${escapeHtml(order.orderedBy)}</td>
-                    <td class="p-4">
-                        <span class="text-amber-300 font-bold">${order.tola} Tola</span>
-                        <span class="text-slate-500 block text-[10px]">${order.quantity} pcs</span>
-                    </td>
-                    <td class="p-4 font-mono text-[11px] text-slate-400">${dims || '-'}</td>
-                    <td class="p-4 text-slate-400">${order.deliveryDate || 'N/A'}</td>
-                    <td class="p-4">${getStatusBadgeHtml(order.status)}</td>
-                    <td class="p-4 text-right space-x-1">
-                        <button onclick="setOrderStatus('${order.id}', 'Sent to Factory')" title="Send to Factory" class="p-1.5 text-blue-400 hover:bg-slate-800 rounded-lg"><i class="fa-solid fa-industry"></i></button>
-                        <button onclick="setOrderStatus('${order.id}', 'Ready')" title="Mark Ready" class="p-1.5 text-emerald-400 hover:bg-slate-800 rounded-lg"><i class="fa-solid fa-circle-check"></i></button>
-                        <button onclick="openModal('${order.id}')" title="Edit" class="p-1.5 text-slate-300 hover:bg-slate-800 rounded-lg"><i class="fa-solid fa-pen-to-square"></i></button>
-                        <button onclick="deleteOrder('${order.id}')" title="Delete" class="p-1.5 text-red-400 hover:bg-slate-800 rounded-lg"><i class="fa-solid fa-trash-can"></i></button>
-                    </td>
+                <div class="mt-4 grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-lg border border-slate-100">
+                  <div><span class="text-slate-400">Quantity:</span> <span class="font-medium">${item.quantity}</span></div>
+                  <div><span class="text-slate-400">Dimensions:</span> <span class="font-medium">${item.height || 0}x${item.breadth || 0}x${item.length || 0} ${item.unit || 'in'}</span></div>
+                </div>
+
+                ${item.additionalDetails ? `<p class="text-xs text-slate-600 mt-3 line-clamp-2 bg-amber-50/50 p-2 rounded border border-amber-100/50"><span class="font-semibold text-amber-800">Note:</span> ${item.additionalDetails}</p>` : ''}
+              </div>
+
+              <div class="pt-4 mt-4 border-t border-slate-100 flex justify-between items-center">
+                <div class="flex gap-2">
+                  <button onclick="toggleFactory('${item.id}', ${!item.sentToFactory})" class="text-xs px-2.5 py-1.5 rounded-md border ${item.sentToFactory ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'} font-medium">
+                    ${item.sentToFactory ? 'In Factory' : 'Send to Factory'}
+                  </button>
+                  <button onclick="toggleReady('${item.id}', ${!item.isReady})" class="text-xs px-2.5 py-1.5 rounded-md border ${item.isReady ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'} font-medium">
+                    ${item.isReady ? 'Ready ✓' : 'Mark Ready'}
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-1">
+                  <button onclick="viewSingleOrder('${item.id}')" class="p-1.5 text-slate-400 hover:text-amber-600" title="View Details"><i data-lucide="eye" class="w-4 h-4"></i></button>
+                  <button onclick="editOrder('${item.id}')" class="p-1.5 text-slate-400 hover:text-slate-700" title="Edit"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
+                  <button onclick="deleteOrder('${item.id}')" class="p-1.5 text-slate-400 hover:text-rose-600" title="Delete"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        container.className = "bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto";
+        container.innerHTML = `
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th class="p-4">Ornament</th>
+                <th class="p-4">Client</th>
+                <th class="p-4">Weight</th>
+                <th class="p-4">Qty</th>
+                <th class="p-4">Dimensions</th>
+                <th class="p-4">Status</th>
+                <th class="p-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 text-xs">
+              ${filtered.map(item => `
+                <tr class="hover:bg-slate-50/50">
+                  <td class="p-4 font-semibold text-slate-900">${item.ornamentName}</td>
+                  <td class="p-4 text-slate-600">${item.orderBy}</td>
+                  <td class="p-4 text-indigo-600 font-semibold">${item.tola} Tola</td>
+                  <td class="p-4">${item.quantity}</td>
+                  <td class="p-4 text-slate-500">${item.height || 0}x${item.breadth || 0}x${item.length || 0} ${item.unit || 'in'}</td>
+                  <td class="p-4">
+                    <span class="px-2 py-0.5 rounded text-[10px] font-medium ${item.sentToFactory ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}">Factory</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-medium ${item.isReady ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">Ready</span>
+                  </td>
+                  <td class="p-4 text-right space-x-1">
+                    <button onclick="viewSingleOrder('${item.id}')" class="p-1 text-slate-400 hover:text-amber-600"><i data-lucide="eye" class="w-4 h-4 inline"></i></button>
+                    <button onclick="editOrder('${item.id}')" class="p-1 text-slate-400 hover:text-slate-700"><i data-lucide="edit-2" class="w-4 h-4 inline"></i></button>
+                    <button onclick="deleteOrder('${item.id}')" class="p-1 text-slate-400 hover:text-rose-600"><i data-lucide="trash-2" class="w-4 h-4 inline"></i></button>
+                  </td>
                 </tr>
-            `;
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+      }
+
+      lucide.createIcons();
+    }
+
+    // VIEW SINGLE ORDER
+    function viewSingleOrder(id) {
+      const item = orders.find(o => o.id === id);
+      if (!item) return;
+
+      document.getElementById('view-ornament-name').innerText = item.ornamentName || 'Ornament Details';
+      document.getElementById('view-order-id').innerText = item.id;
+      document.getElementById('view-order-by').innerText = item.orderBy || '—';
+      document.getElementById('view-tola').innerText = `${item.tola} Tola`;
+      document.getElementById('view-quantity').innerText = item.quantity || 1;
+      document.getElementById('view-dimensions').innerText = `${item.height || 0} H × ${item.breadth || 0} B × ${item.length || 0} L (${item.unit || 'in'})`;
+      
+      const detailsEl = document.getElementById('view-details');
+      detailsEl.innerText = item.additionalDetails || 'No additional instructions provided.';
+
+      const imgContainer = document.getElementById('view-image-container');
+      if (item.driveUrl) {
+        imgContainer.innerHTML = `
+          <img src="${getDriveThumbnail(item.driveUrl)}" class="w-full h-full object-contain" onerror="this.src=''; this.onerror=null; this.parentElement.innerHTML='<div class=\'text-slate-400 text-xs flex flex-col items-center\'><i data-lucide=\'image-off\' class=\'w-8 h-8 mb-1\'></i>Image Unavailable</div>'; lucide.createIcons();">
+          <a href="${item.driveUrl}" target="_blank" class="absolute bottom-3 right-3 bg-slate-900/80 hover:bg-slate-900 text-white text-[11px] px-3 py-1.5 rounded-lg backdrop-blur-sm flex items-center gap-1">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i> Open original in Drive
+          </a>
+        `;
+      } else {
+        imgContainer.innerHTML = `
+          <div class="text-slate-300 flex flex-col items-center">
+            <i data-lucide="gem" class="w-12 h-12 mb-2"></i>
+            <span class="text-xs text-slate-400">No Image Uploaded</span>
+          </div>`;
+      }
+
+      const fBadge = document.getElementById('view-factory-badge');
+      if (item.sentToFactory) {
+        fBadge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-amber-100 text-amber-700 border-amber-200";
+        fBadge.innerText = "Sent to Factory";
+      } else {
+        fBadge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 border-slate-200";
+        fBadge.innerText = "Not in Factory";
+      }
+
+      const rBadge = document.getElementById('view-ready-badge');
+      if (item.isReady) {
+        rBadge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-emerald-100 text-emerald-700 border-emerald-200";
+        rBadge.innerText = "Ready for Delivery";
+      } else {
+        rBadge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 border-slate-200";
+        rBadge.innerText = "In Production";
+      }
+
+      document.getElementById('view-edit-btn').onclick = () => {
+        closeViewModal();
+        editOrder(item.id);
+      };
+
+      document.getElementById('view-modal').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function closeViewModal() {
+      document.getElementById('view-modal').classList.add('hidden');
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total').innerText = orders.length;
+      document.getElementById('stat-factory').innerText = orders.filter(i => i.sentToFactory).length;
+      document.getElementById('stat-ready').innerText = orders.filter(i => i.isReady).length;
+      const totalWeight = orders.reduce((acc, curr) => acc + (parseFloat(curr.tola) || 0), 0);
+      document.getElementById('stat-weight').innerText = totalWeight.toFixed(2);
+    }
+
+    // FORM & DATA ACTIONS
+    async function handleFormSubmit(e) {
+      e.preventDefault();
+      const id = document.getElementById('order-id').value;
+
+      const payload = {
+        ornamentName: document.getElementById('ornament-name').value,
+        orderBy: document.getElementById('order-by').value,
+        tola: parseFloat(document.getElementById('tola').value) || 0,
+        quantity: parseInt(document.getElementById('quantity').value) || 1,
+        height: parseFloat(document.getElementById('height').value) || 0,
+        breadth: parseFloat(document.getElementById('breadth').value) || 0,
+        length: parseFloat(document.getElementById('length').value) || 0,
+        unit: document.getElementById('dimension-unit').value,
+        driveUrl: document.getElementById('drive-url').value,
+        additionalDetails: document.getElementById('additional-details').value,
+        sentToFactory: document.getElementById('sent-to-factory').checked,
+        isReady: document.getElementById('ready-status').checked,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (db) {
+        if (id) {
+          await db.collection('orders').doc(id).update(payload);
+        } else {
+          payload.createdAt = new Date().toISOString();
+          await db.collection('orders').add(payload);
         }
-
-        // Image Modal Handler
-        function openImageModal(photoUrl) {
-            if (!photoUrl) return;
-            document.getElementById('fullSizeImage').src = photoUrl;
-            document.getElementById('imageModal').classList.remove('hidden');
+      } else {
+        if (id) {
+          const idx = orders.findIndex(o => o.id === id);
+          if (idx !== -1) orders[idx] = { ...orders[idx], ...payload };
+        } else {
+          payload.id = 'loc_' + Date.now();
+          payload.createdAt = new Date().toISOString();
+          orders.push(payload);
         }
+        localStorage.setItem('silver_orders_backup', JSON.stringify(orders));
+        renderOrders();
+      }
 
-        function closeImageModal() {
-            document.getElementById('imageModal').classList.add('hidden');
+      closeModal();
+    }
+
+    async function toggleFactory(id, status) {
+      if (db) {
+        await db.collection('orders').doc(id).update({ sentToFactory: status });
+      } else {
+        const item = orders.find(o => o.id === id);
+        if (item) item.sentToFactory = status;
+        localStorage.setItem('silver_orders_backup', JSON.stringify(orders));
+        renderOrders();
+      }
+    }
+
+    async function toggleReady(id, status) {
+      if (db) {
+        await db.collection('orders').doc(id).update({ isReady: status });
+      } else {
+        const item = orders.find(o => o.id === id);
+        if (item) item.isReady = status;
+        localStorage.setItem('silver_orders_backup', JSON.stringify(orders));
+        renderOrders();
+      }
+    }
+
+    async function deleteOrder(id) {
+      if (!confirm("Are you sure you want to delete this order?")) return;
+      if (db) {
+        await db.collection('orders').doc(id).delete();
+      } else {
+        orders = orders.filter(o => o.id !== id);
+        localStorage.setItem('silver_orders_backup', JSON.stringify(orders));
+        renderOrders();
+      }
+    }
+
+    function editOrder(id) {
+      const item = orders.find(o => o.id === id);
+      if (!item) return;
+
+      document.getElementById('order-id').value = item.id;
+      document.getElementById('ornament-name').value = item.ornamentName || '';
+      document.getElementById('order-by').value = item.orderBy || '';
+      document.getElementById('tola').value = item.tola || '';
+      document.getElementById('quantity').value = item.quantity || 1;
+      document.getElementById('height').value = item.height || '';
+      document.getElementById('breadth').value = item.breadth || '';
+      document.getElementById('length').value = item.length || '';
+      document.getElementById('dimension-unit').value = item.unit || 'in';
+      document.getElementById('drive-url').value = item.driveUrl || '';
+      document.getElementById('additional-details').value = item.additionalDetails || '';
+      document.getElementById('sent-to-factory').checked = !!item.sentToFactory;
+      document.getElementById('ready-status').checked = !!item.isReady;
+
+      document.getElementById('modal-title').innerText = "Edit Order";
+      document.getElementById('order-modal').classList.remove('hidden');
+    }
+
+    function openModal() {
+      document.getElementById('order-form').reset();
+      document.getElementById('order-id').value = '';
+      document.getElementById('modal-title').innerText = "Add New Order";
+      document.getElementById('order-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('order-modal').classList.add('hidden');
+    }
+
+    function toggleConfigModal() {
+      const modal = document.getElementById('config-modal');
+      if (modal.classList.contains('hidden')) {
+        const saved = localStorage.getItem('firebase_config');
+        if (saved) {
+          const cfg = JSON.parse(saved);
+          document.getElementById('cfg-apiKey').value = cfg.apiKey || '';
+          document.getElementById('cfg-authDomain').value = cfg.authDomain || '';
+          document.getElementById('cfg-projectId').value = cfg.projectId || '';
+          document.getElementById('cfg-storageBucket').value = cfg.storageBucket || '';
         }
+        modal.classList.remove('hidden');
+      } else {
+        modal.classList.add('hidden');
+      }
+    }
 
-        // Data Export & Backup Functions
-        function exportData(type) {
-            if (orders.length === 0) {
-                showToast('No order data to export.', 'danger');
-                return;
-            }
+    function saveFirebaseConfig() {
+      const config = {
+        apiKey: document.getElementById('cfg-apiKey').value.trim(),
+        authDomain: document.getElementById('cfg-authDomain').value.trim(),
+        projectId: document.getElementById('cfg-projectId').value.trim(),
+        storageBucket: document.getElementById('cfg-storageBucket').value.trim()
+      };
 
-            if (type === 'json') {
-                const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(orders, null, 2));
-                const downloadAnchor = document.createElement('a');
-                downloadAnchor.setAttribute("href", dataStr);
-                downloadAnchor.setAttribute("download", `silver_orders_backup_${new Date().toISOString().split('T')[0]}.json`);
-                document.body.appendChild(downloadAnchor);
-                downloadAnchor.click();
-                downloadAnchor.remove();
-                showToast('JSON Backup downloaded.');
-            } else if (type === 'csv') {
-                const headers = ["ID", "Ornament Name", "Ordered By", "Weight (Tola)", "Quantity", "Height", "Breadth", "Length", "Unit", "Status", "Order Date", "Delivery Date", "Details"];
-                const rows = orders.map(o => [
-                    o.id,
-                    `"${o.ornamentName || o.customerName || ''}"`,
-                    `"${o.orderedBy}"`,
-                    o.tola,
-                    o.quantity,
-                    o.height || '',
-                    o.breadth || '',
-                    o.length || '',
-                    o.dimensionUnit || 'in',
-                    o.status,
-                    o.orderDate || '',
-                    o.deliveryDate || '',
-                    `"${(o.additionalDetails || '').replace(/"/g, '""')}"`
-                ]);
+      localStorage.setItem('firebase_config', JSON.stringify(config));
+      toggleConfigModal();
+      location.reload();
+    }
 
-                const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
-                const encodedUri = encodeURI(csvContent);
-                const link = document.createElement('a');
-                link.setAttribute('href', encodedUri);
-                link.setAttribute('download', `silver_orders_${new Date().toISOString().split('T')[0]}.csv`);
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                showToast('CSV Spreadsheet downloaded.');
-            }
-        }
-
-        function importData(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                try {
-                    const imported = JSON.parse(e.target.result);
-                    if (Array.isArray(imported)) {
-                        orders = imported;
-                        saveOrdersToStorage();
-                        updateMetrics();
-                        renderOrders();
-                        showToast('Data backup restored successfully!');
-                    } else {
-                        showToast('Invalid backup file format.', 'danger');
-                    }
-                } catch (err) {
-                    showToast('Failed to parse backup file.', 'danger');
-                }
-            };
-            reader.readAsText(file);
-        }
-
-        // Toast Helper
-        function showToast(msg, type = 'success') {
-            const toast = document.getElementById('toast');
-            const messageEl = document.getElementById('toastMessage');
-            const iconEl = document.getElementById('toastIcon');
-
-            messageEl.innerText = msg;
-            if (type === 'danger') {
-                iconEl.className = 'text-red-400';
-                iconEl.innerHTML = '<i class="fa-solid fa-circle-xmark"></i>';
-            } else {
-                iconEl.className = 'text-emerald-400';
-                iconEl.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
-            }
-
-            toast.classList.remove('opacity-0', 'pointer-events-none');
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'pointer-events-none');
-            }, 3000);
-        }
-
-        // String Safety
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-        }
-    </script>
+    function setViewMode(mode) {
+      viewMode = mode;
+      document.getElementById('view-grid-btn').className = mode === 'grid' ? 'p-2 bg-white text-slate-900 shadow-sm' : 'p-2 text-slate-500';
+      document.getElementById('view-table-btn').className = mode === 'table' ? 'p-2 bg-white text-slate-900 shadow-sm' : 'p-2 text-slate-500';
+      renderOrders();
+    }
+  </script>
 </body>
 </html>
