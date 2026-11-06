@@ -53,18 +53,22 @@
   <main class="max-w-7xl mx-auto px-4 mt-6">
     
     <!-- STATS OVERVIEW -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div class="text-xs text-slate-500 font-medium">Total Orders</div>
         <div id="stat-total" class="text-2xl font-bold text-slate-900 mt-1">0</div>
       </div>
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-amber-600 font-medium">Sent to Factory</div>
+        <div class="text-xs text-amber-600 font-medium">In Factory</div>
         <div id="stat-factory" class="text-2xl font-bold text-amber-600 mt-1">0</div>
       </div>
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div class="text-xs text-emerald-600 font-medium">Ready Items</div>
         <div id="stat-ready" class="text-2xl font-bold text-emerald-600 mt-1">0</div>
+      </div>
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+        <div class="text-xs text-blue-600 font-medium">Delivered</div>
+        <div id="stat-delivered" class="text-2xl font-bold text-blue-600 mt-1">0</div>
       </div>
       <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
         <div class="text-xs text-indigo-600 font-medium">Total Weight (Tola)</div>
@@ -92,6 +96,12 @@
           <option value="NO">In Progress</option>
         </select>
 
+        <select id="filter-delivered" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
+          <option value="ALL">All Delivery Status</option>
+          <option value="YES">Delivered</option>
+          <option value="NO">Pending Delivery</option>
+        </select>
+
         <div class="flex border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
           <button id="view-grid-btn" onclick="setViewMode('grid')" class="p-2 bg-white text-slate-900 shadow-sm"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
           <button id="view-table-btn" onclick="setViewMode('table')" class="p-2 text-slate-500"><i data-lucide="list" class="w-4 h-4"></i></button>
@@ -117,14 +127,13 @@
 
       <div class="p-6 overflow-y-auto space-y-6">
         <!-- IMAGE PREVIEW -->
-        <div id="view-image-container" class="relative w-full h-64 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center">
-          <!-- Dynamically populated -->
-        </div>
+        <div id="view-image-container" class="relative w-full h-64 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center"></div>
 
         <!-- STATUS BADGES -->
-        <div class="flex gap-2">
+        <div class="flex flex-wrap gap-2">
           <span id="view-factory-badge" class="text-xs font-semibold px-3 py-1 rounded-full border"></span>
           <span id="view-ready-badge" class="text-xs font-semibold px-3 py-1 rounded-full border"></span>
+          <span id="view-delivered-badge" class="text-xs font-semibold px-3 py-1 rounded-full border"></span>
         </div>
 
         <!-- SPECIFICATIONS GRID -->
@@ -237,20 +246,28 @@
         </div>
 
         <!-- STATUS TOGGLES -->
-        <div class="grid grid-cols-2 gap-4 pt-2">
-          <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
+        <div class="grid grid-cols-3 gap-3 pt-2">
+          <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
             <input type="checkbox" id="sent-to-factory" class="w-4 h-4 text-amber-500 rounded focus:ring-amber-400">
             <div>
-              <div class="text-xs font-semibold text-slate-800">Sent to Factory</div>
-              <div class="text-[10px] text-slate-400">Item is being produced</div>
+              <div class="text-xs font-semibold text-slate-800">Factory</div>
+              <div class="text-[10px] text-slate-400">In production</div>
             </div>
           </label>
 
-          <label class="flex items-center gap-3 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
+          <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
             <input type="checkbox" id="ready-status" class="w-4 h-4 text-emerald-500 rounded focus:ring-emerald-400">
             <div>
               <div class="text-xs font-semibold text-slate-800">Ready</div>
-              <div class="text-[10px] text-slate-400">Finished & ready for client</div>
+              <div class="text-[10px] text-slate-400">Item complete</div>
+            </div>
+          </label>
+
+          <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
+            <input type="checkbox" id="delivered-status" class="w-4 h-4 text-blue-500 rounded focus:ring-blue-400">
+            <div>
+              <div class="text-xs font-semibold text-slate-800">Delivered</div>
+              <div class="text-[10px] text-slate-400">Handed to client</div>
             </div>
           </label>
         </div>
@@ -370,6 +387,7 @@
       const search = document.getElementById('search-input').value.toLowerCase();
       const filterFactory = document.getElementById('filter-factory').value;
       const filterReady = document.getElementById('filter-ready').value;
+      const filterDelivered = document.getElementById('filter-delivered').value;
 
       const filtered = orders.filter(item => {
         const matchesSearch = (item.ornamentName || '').toLowerCase().includes(search) ||
@@ -381,7 +399,10 @@
         const matchesReady = filterReady === 'ALL' ? true :
           (filterReady === 'YES' ? item.isReady : !item.isReady);
 
-        return matchesSearch && matchesFactory && matchesReady;
+        const matchesDelivered = filterDelivered === 'ALL' ? true :
+          (filterDelivered === 'YES' ? item.isDelivered : !item.isDelivered);
+
+        return matchesSearch && matchesFactory && matchesReady && matchesDelivered;
       });
 
       updateStats();
@@ -412,12 +433,15 @@
                   <span class="text-xs">No Photo</span>
                 </div>
               `}
-              <div class="absolute top-3 right-3 flex gap-1">
-                <span class="text-[10px] font-semibold px-2.5 py-1 rounded-full ${item.sentToFactory ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600'}">
+              <div class="absolute top-3 right-3 flex flex-wrap gap-1 justify-end max-w-[80%]">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.sentToFactory ? 'bg-amber-100 text-amber-700 border border-amber-200' : 'bg-slate-100 text-slate-600'}">
                   ${item.sentToFactory ? 'Factory' : 'Pending'}
                 </span>
-                <span class="text-[10px] font-semibold px-2.5 py-1 rounded-full ${item.isReady ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}">
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.isReady ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' : 'bg-slate-100 text-slate-600'}">
                   ${item.isReady ? 'Ready' : 'In Progress'}
+                </span>
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full ${item.isDelivered ? 'bg-blue-100 text-blue-700 border border-blue-200' : 'bg-slate-100 text-slate-600'}">
+                  ${item.isDelivered ? 'Delivered' : 'Undelivered'}
                 </span>
               </div>
             </div>
@@ -438,17 +462,20 @@
                 ${item.additionalDetails ? `<p class="text-xs text-slate-600 mt-3 line-clamp-2 bg-amber-50/50 p-2 rounded border border-amber-100/50"><span class="font-semibold text-amber-800">Note:</span> ${item.additionalDetails}</p>` : ''}
               </div>
 
-              <div class="pt-4 mt-4 border-t border-slate-100 flex justify-between items-center">
-                <div class="flex gap-2">
-                  <button onclick="toggleFactory('${item.id}', ${!item.sentToFactory})" class="text-xs px-2.5 py-1.5 rounded-md border ${item.sentToFactory ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'} font-medium">
-                    ${item.sentToFactory ? 'In Factory' : 'Send to Factory'}
+              <div class="pt-4 mt-4 border-t border-slate-100 flex flex-col gap-2">
+                <div class="flex gap-1.5 flex-wrap">
+                  <button onclick="toggleFactory('${item.id}', ${!item.sentToFactory})" class="text-[11px] px-2 py-1 rounded border ${item.sentToFactory ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-slate-50 text-slate-600 border-slate-200'} font-medium">
+                    ${item.sentToFactory ? 'Factory ✓' : 'Send Factory'}
                   </button>
-                  <button onclick="toggleReady('${item.id}', ${!item.isReady})" class="text-xs px-2.5 py-1.5 rounded-md border ${item.isReady ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'} font-medium">
+                  <button onclick="toggleReady('${item.id}', ${!item.isReady})" class="text-[11px] px-2 py-1 rounded border ${item.isReady ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-slate-50 text-slate-600 border-slate-200'} font-medium">
                     ${item.isReady ? 'Ready ✓' : 'Mark Ready'}
+                  </button>
+                  <button onclick="toggleDelivered('${item.id}', ${!item.isDelivered})" class="text-[11px] px-2 py-1 rounded border ${item.isDelivered ? 'bg-blue-50 text-blue-700 border-blue-200' : 'bg-slate-50 text-slate-600 border-slate-200'} font-medium">
+                    ${item.isDelivered ? 'Delivered ✓' : 'Mark Delivered'}
                   </button>
                 </div>
 
-                <div class="flex items-center gap-1">
+                <div class="flex items-center justify-end gap-1 pt-1 border-t border-slate-50">
                   <button onclick="viewSingleOrder('${item.id}')" class="p-1.5 text-slate-400 hover:text-amber-600" title="View Details"><i data-lucide="eye" class="w-4 h-4"></i></button>
                   <button onclick="editOrder('${item.id}')" class="p-1.5 text-slate-400 hover:text-slate-700" title="Edit"><i data-lucide="edit-2" class="w-4 h-4"></i></button>
                   <button onclick="deleteOrder('${item.id}')" class="p-1.5 text-slate-400 hover:text-rose-600" title="Delete"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
@@ -483,6 +510,7 @@
                   <td class="p-4">
                     <span class="px-2 py-0.5 rounded text-[10px] font-medium ${item.sentToFactory ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}">Factory</span>
                     <span class="px-2 py-0.5 rounded text-[10px] font-medium ${item.isReady ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}">Ready</span>
+                    <span class="px-2 py-0.5 rounded text-[10px] font-medium ${item.isDelivered ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}">Delivered</span>
                   </td>
                   <td class="p-4 text-right space-x-1">
                     <button onclick="viewSingleOrder('${item.id}')" class="p-1 text-slate-400 hover:text-amber-600"><i data-lucide="eye" class="w-4 h-4 inline"></i></button>
@@ -548,6 +576,15 @@
         rBadge.innerText = "In Production";
       }
 
+      const dBadge = document.getElementById('view-delivered-badge');
+      if (item.isDelivered) {
+        dBadge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-blue-100 text-blue-700 border-blue-200";
+        dBadge.innerText = "Delivered to Customer";
+      } else {
+        dBadge.className = "text-xs font-semibold px-3 py-1 rounded-full bg-slate-100 text-slate-600 border-slate-200";
+        dBadge.innerText = "Pending Delivery";
+      }
+
       document.getElementById('view-edit-btn').onclick = () => {
         closeViewModal();
         editOrder(item.id);
@@ -565,6 +602,7 @@
       document.getElementById('stat-total').innerText = orders.length;
       document.getElementById('stat-factory').innerText = orders.filter(i => i.sentToFactory).length;
       document.getElementById('stat-ready').innerText = orders.filter(i => i.isReady).length;
+      document.getElementById('stat-delivered').innerText = orders.filter(i => i.isDelivered).length;
       const totalWeight = orders.reduce((acc, curr) => acc + (parseFloat(curr.tola) || 0), 0);
       document.getElementById('stat-weight').innerText = totalWeight.toFixed(2);
     }
@@ -587,6 +625,7 @@
         additionalDetails: document.getElementById('additional-details').value,
         sentToFactory: document.getElementById('sent-to-factory').checked,
         isReady: document.getElementById('ready-status').checked,
+        isDelivered: document.getElementById('delivered-status').checked,
         updatedAt: new Date().toISOString()
       };
 
@@ -635,6 +674,17 @@
       }
     }
 
+    async function toggleDelivered(id, status) {
+      if (db) {
+        await db.collection('orders').doc(id).update({ isDelivered: status });
+      } else {
+        const item = orders.find(o => o.id === id);
+        if (item) item.isDelivered = status;
+        localStorage.setItem('silver_orders_backup', JSON.stringify(orders));
+        renderOrders();
+      }
+    }
+
     async function deleteOrder(id) {
       if (!confirm("Are you sure you want to delete this order?")) return;
       if (db) {
@@ -663,6 +713,7 @@
       document.getElementById('additional-details').value = item.additionalDetails || '';
       document.getElementById('sent-to-factory').checked = !!item.sentToFactory;
       document.getElementById('ready-status').checked = !!item.isReady;
+      document.getElementById('delivered-status').checked = !!item.isDelivered;
 
       document.getElementById('modal-title').innerText = "Edit Order";
       document.getElementById('order-modal').classList.remove('hidden');
