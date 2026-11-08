@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Silver Ornament Order Manager</title>
+  <title>Silver Craft Manager & Ledger</title>
   
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
   
-  <!-- Firebase SDKs -->
+  <!-- Firebase SDKs (Compat version for unified integration) -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 
@@ -19,21 +19,55 @@
       background: rgba(255, 255, 255, 0.95);
       backdrop-filter: blur(10px);
     }
+    /* Custom Ledger Styles */
+    .ledger-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .ledger-card { background: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .stat-val { font-size: 22px; font-weight: bold; margin-top: 6px; }
+    .stat-val.profit { color: #16a34a; }
+    .stat-val.due { color: #d97706; }
+    .sub-stat { font-size: 12px; color: #64748b; margin-top: 4px; }
+    .ledger-section { background: #ffffff; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; margin-bottom: 24px; }
+    .ledger-form-group { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin-bottom: 16px; }
+    .ledger-field { display: flex; flex-direction: column; gap: 4px; }
+    .ledger-field label { font-size: 11px; font-weight: 600; text-transform: uppercase; color: #64748b; }
+    .ledger-field input, .ledger-field select, .ledger-btn { padding: 8px 12px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 13px; }
+    .ledger-btn { background: #2563eb; color: white; border: none; cursor: pointer; font-weight: 500; }
+    .ledger-btn:hover { opacity: 0.9; }
+    .ledger-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    .ledger-table th, .ledger-table td { text-align: left; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 13px; }
+    .ledger-table th { background: #f8fafc; font-size: 11px; text-transform: uppercase; color: #475569; }
+    .ledger-table td input, .ledger-table td select { width: 95%; padding: 4px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 13px; }
+    .btn-danger { background: #ef4444; color: white; border: none; padding: 6px 10px; font-size: 12px; border-radius: 6px; cursor: pointer; }
+    .btn-danger:hover { background: #dc2626; }
   </style>
 </head>
 <body class="bg-slate-100 min-h-screen text-slate-800 font-sans pb-12">
 
   <!-- TOP HEADER -->
   <header class="bg-slate-900 text-white sticky top-0 z-40 shadow-md">
-    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-wrap justify-between items-center gap-4">
-      <div class="flex items-center gap-3">
-        <div class="bg-slate-700 p-2 rounded-lg text-amber-400">
-          <i data-lucide="gem" class="w-6 h-6"></i>
+    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+      <div class="flex items-center gap-6">
+        <div class="flex items-center gap-3">
+          <div class="bg-slate-700 p-2 rounded-lg text-amber-400">
+            <i data-lucide="gem" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold tracking-tight">Silver Craft Manager</h1>
+            <p class="text-[11px] text-slate-400">Bookings & Financial Ledger</p>
+          </div>
         </div>
-        <div>
-          <h1 class="text-xl font-bold tracking-tight">Silver Craft Manager</h1>
-          <p class="text-xs text-slate-400">Firebase Firestore + Google Drive Images</p>
-        </div>
+
+        <!-- MAIN TABS -->
+        <nav class="flex gap-2 bg-slate-800 p-1 rounded-xl border border-slate-700">
+          <button id="tab-btn-booking" onclick="switchTab('booking')" class="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-slate-950 shadow">
+            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+            <span>Bookings</span>
+          </button>
+          <button id="tab-btn-ledger" onclick="switchTab('ledger')" class="flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
+            <span>Ledger</span>
+          </button>
+        </nav>
       </div>
 
       <div class="flex items-center gap-2">
@@ -42,7 +76,7 @@
           <span>Firebase Setup</span>
           <span id="db-status-dot" class="w-2 h-2 rounded-full bg-amber-500"></span>
         </button>
-        <button onclick="openModal()" class="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-sm px-4 py-2 rounded-md shadow transition">
+        <button id="new-order-header-btn" onclick="openModal()" class="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-semibold text-sm px-4 py-2 rounded-md shadow transition">
           <i data-lucide="plus" class="w-4 h-4"></i>
           <span>New Order</span>
         </button>
@@ -52,65 +86,229 @@
 
   <main class="max-w-7xl mx-auto px-4 mt-6">
     
-    <!-- STATS OVERVIEW -->
-    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-slate-500 font-medium">Total Orders</div>
-        <div id="stat-total" class="text-2xl font-bold text-slate-900 mt-1">0</div>
+    <!-- ================= BOOKINGS TAB CONTENT ================= -->
+    <div id="tab-content-booking">
+      <!-- STATS OVERVIEW -->
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="text-xs text-slate-500 font-medium">Total Orders</div>
+          <div id="stat-total" class="text-2xl font-bold text-slate-900 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="text-xs text-amber-600 font-medium">In Factory</div>
+          <div id="stat-factory" class="text-2xl font-bold text-amber-600 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="text-xs text-emerald-600 font-medium">Ready Items</div>
+          <div id="stat-ready" class="text-2xl font-bold text-emerald-600 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="text-xs text-blue-600 font-medium">Delivered</div>
+          <div id="stat-delivered" class="text-2xl font-bold text-blue-600 mt-1">0</div>
+        </div>
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
+          <div class="text-xs text-indigo-600 font-medium">Total Weight (Tola)</div>
+          <div id="stat-weight" class="text-2xl font-bold text-indigo-600 mt-1">0</div>
+        </div>
       </div>
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-amber-600 font-medium">In Factory</div>
-        <div id="stat-factory" class="text-2xl font-bold text-amber-600 mt-1">0</div>
+
+      <!-- CONTROLS & FILTER BAR -->
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+        <div class="relative w-full md:w-80">
+          <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
+          <input type="text" id="search-input" oninput="renderOrders()" placeholder="Search ornament or customer..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
+          <select id="filter-factory" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
+            <option value="ALL">All Factory Status</option>
+            <option value="YES">Sent to Factory</option>
+            <option value="NO">Not Sent Yet</option>
+          </select>
+
+          <select id="filter-ready" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
+            <option value="ALL">All Readiness</option>
+            <option value="YES">Ready</option>
+            <option value="NO">In Progress</option>
+          </select>
+
+          <select id="filter-delivered" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
+            <option value="ALL">All Delivery Status</option>
+            <option value="YES">Delivered</option>
+            <option value="NO">Pending Delivery</option>
+          </select>
+
+          <div class="flex border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
+            <button id="view-grid-btn" onclick="setViewMode('grid')" class="p-2 bg-white text-slate-900 shadow-sm"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
+            <button id="view-table-btn" onclick="setViewMode('table')" class="p-2 text-slate-500"><i data-lucide="list" class="w-4 h-4"></i></button>
+          </div>
+        </div>
       </div>
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-emerald-600 font-medium">Ready Items</div>
-        <div id="stat-ready" class="text-2xl font-bold text-emerald-600 mt-1">0</div>
-      </div>
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-blue-600 font-medium">Delivered</div>
-        <div id="stat-delivered" class="text-2xl font-bold text-blue-600 mt-1">0</div>
-      </div>
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-        <div class="text-xs text-indigo-600 font-medium">Total Weight (Tola)</div>
-        <div id="stat-weight" class="text-2xl font-bold text-indigo-600 mt-1">0</div>
-      </div>
+
+      <!-- ORDERS CONTAINER -->
+      <div id="orders-container"></div>
     </div>
 
-    <!-- CONTROLS & FILTER BAR -->
-    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row justify-between items-center gap-4">
-      <div class="relative w-full md:w-80">
-        <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-400"></i>
-        <input type="text" id="search-input" oninput="renderOrders()" placeholder="Search ornament or customer..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amber-500">
+
+    <!-- ================= LEDGER TAB CONTENT ================= -->
+    <div id="tab-content-ledger" class="hidden">
+      <!-- Month Filter -->
+      <div class="ledger-card mb-6">
+        <div class="ledger-form-group" style="margin:0;">
+          <div class="ledger-field">
+            <label>Select Month to View Ledger</label>
+            <input type="month" id="monthFilter" onchange="renderLedgerAll()">
+          </div>
+        </div>
       </div>
 
-      <div class="flex flex-wrap items-center gap-3 w-full md:w-auto justify-end">
-        <select id="filter-factory" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
-          <option value="ALL">All Factory Status</option>
-          <option value="YES">Sent to Factory</option>
-          <option value="NO">Not Sent Yet</option>
-        </select>
+      <!-- Ledger Summary Stats -->
+      <div class="ledger-grid">
+        <div class="ledger-card">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Total Factory Weight (This Month)</label>
+          <div class="stat-val text-slate-900" id="statFactoryWt">0.00 g</div>
+          <div class="sub-stat">Sum of all item factory weights</div>
+        </div>
+        <div class="ledger-card">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Factory Cash Due (Closing)</label>
+          <div class="stat-val due" id="statFactoryDue">NPR 0</div>
+          <div class="sub-stat" id="statFactoryBreakdown">Opening: 0 | Added: 0 | Paid: 0</div>
+        </div>
+        <div class="ledger-card">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Silver Balance Due (Closing)</label>
+          <div class="stat-val text-slate-900" id="statSilverDue">0.00 g</div>
+          <div class="sub-stat" id="statSilverBreakdown">Opening: 0g | Used: 0g | Given: 0g</div>
+        </div>
+        <div class="ledger-card">
+          <label class="text-xs font-semibold text-slate-500 uppercase">Net Profit (This Month)</label>
+          <div class="stat-val profit" id="statNetProfit">NPR 0</div>
+          <div class="sub-stat" id="statProfitBreakdown">Shop Total - Factory Total</div>
+        </div>
+      </div>
 
-        <select id="filter-ready" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
-          <option value="ALL">All Readiness</option>
-          <option value="YES">Ready</option>
-          <option value="NO">In Progress</option>
-        </select>
+      <!-- Items Table -->
+      <div class="ledger-section">
+        <h2 class="text-base font-bold text-slate-900 mb-3">Item Transactions</h2>
+        <div class="ledger-form-group">
+          <div class="ledger-field">
+            <label>Date</label>
+            <input type="date" id="itemDate">
+          </div>
+          <div class="ledger-field">
+            <label>Item Name</label>
+            <input type="text" id="itemName" placeholder="e.g. Chain, Ring">
+          </div>
+          <div class="ledger-field">
+            <label>Factory Wt (g)</label>
+            <input type="number" id="itemFactoryWt" step="0.01" placeholder="0.00">
+          </div>
+          <div class="ledger-field">
+            <label>Factory Pricing Mode</label>
+            <select id="itemFactoryPriceMode" onchange="handlePriceModeChange()">
+              <option value="75">Factory Weight × 75</option>
+              <option value="custom">Custom Fixed Price</option>
+            </select>
+          </div>
+          <div class="ledger-field" id="customFactoryField" style="display:none;">
+            <label>Custom Factory Price</label>
+            <input type="number" id="itemCustomFactoryPrice" placeholder="0">
+          </div>
+          <div class="ledger-field">
+            <label>Shop Wt (g)</label>
+            <input type="number" id="itemShopWt" step="0.01" placeholder="0.00">
+          </div>
+          <div class="ledger-field">
+            <label>Shop Pricing Mode</label>
+            <select id="itemShopPriceMode" onchange="handlePriceModeChange()">
+              <option value="100">Shop Weight × 100</option>
+              <option value="110">Shop Weight × 110</option>
+              <option value="custom">Custom Fixed Price</option>
+            </select>
+          </div>
+          <div class="ledger-field" id="customShopField" style="display:none;">
+            <label>Custom Shop Price</label>
+            <input type="number" id="itemCustomShopPrice" placeholder="0">
+          </div>
+          <button class="ledger-btn" onclick="addItem()">Add Item</button>
+        </div>
 
-        <select id="filter-delivered" onchange="renderOrders()" class="bg-slate-50 border border-slate-200 text-xs px-3 py-2 rounded-lg focus:outline-none">
-          <option value="ALL">All Delivery Status</option>
-          <option value="YES">Delivered</option>
-          <option value="NO">Pending Delivery</option>
-        </select>
+        <div class="overflow-x-auto">
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>Item</th>
+                <th>Factory Wt (g)</th>
+                <th>Factory Rate</th>
+                <th>Factory Price (NPR)</th>
+                <th>Shop Wt (g)</th>
+                <th>Shop Rate</th>
+                <th>Shop Price (NPR)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="itemTableBody"></tbody>
+          </table>
+        </div>
+      </div>
 
-        <div class="flex border border-slate-200 rounded-lg overflow-hidden bg-slate-50">
-          <button id="view-grid-btn" onclick="setViewMode('grid')" class="p-2 bg-white text-slate-900 shadow-sm"><i data-lucide="layout-grid" class="w-4 h-4"></i></button>
-          <button id="view-table-btn" onclick="setViewMode('table')" class="p-2 text-slate-500"><i data-lucide="list" class="w-4 h-4"></i></button>
+      <!-- Settlements Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div class="ledger-section">
+          <h2 class="text-base font-bold text-slate-900 mb-3">Silver Given to Factory</h2>
+          <div class="ledger-form-group">
+            <div class="ledger-field">
+              <label>Date</label>
+              <input type="date" id="silverDate">
+            </div>
+            <div class="ledger-field">
+              <label>Silver Weight (g)</label>
+              <input type="number" id="silverWt" step="0.01">
+            </div>
+            <button class="ledger-btn" onclick="addSilver()">Add Silver</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Weight Given (g)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="silverTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="ledger-section">
+          <h2 class="text-base font-bold text-slate-900 mb-3">Amount Paid to Factory</h2>
+          <div class="ledger-form-group">
+            <div class="ledger-field">
+              <label>Date</label>
+              <input type="date" id="paymentDate">
+            </div>
+            <div class="ledger-field">
+              <label>Amount (NPR)</label>
+              <input type="number" id="paymentAmount">
+            </div>
+            <button class="ledger-btn" onclick="addPayment()">Add Payment</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="ledger-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Amount Paid (NPR)</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="paymentTableBody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
     </div>
-
-    <!-- ORDERS CONTAINER -->
-    <div id="orders-container"></div>
 
   </main>
 
@@ -126,17 +324,14 @@
       </div>
 
       <div class="p-6 overflow-y-auto space-y-6">
-        <!-- IMAGE PREVIEW -->
         <div id="view-image-container" class="relative w-full h-64 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center"></div>
 
-        <!-- STATUS BADGES -->
         <div class="flex flex-wrap gap-2">
           <span id="view-factory-badge" class="text-xs font-semibold px-3 py-1 rounded-full border"></span>
           <span id="view-ready-badge" class="text-xs font-semibold px-3 py-1 rounded-full border"></span>
           <span id="view-delivered-badge" class="text-xs font-semibold px-3 py-1 rounded-full border"></span>
         </div>
 
-        <!-- SPECIFICATIONS GRID -->
         <div class="grid grid-cols-2 sm:grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs">
           <div>
             <span class="text-slate-400 block mb-0.5">Ordered By</span>
@@ -156,7 +351,6 @@
           </div>
         </div>
 
-        <!-- ADDITIONAL DETAILS -->
         <div>
           <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Additional Details & Instructions</h4>
           <div id="view-details" class="text-sm text-slate-700 bg-amber-50/60 p-4 rounded-xl border border-amber-100 whitespace-pre-wrap leading-relaxed"></div>
@@ -207,7 +401,6 @@
           </div>
         </div>
 
-        <!-- DIMENSIONS AREA -->
         <div class="border border-slate-100 bg-slate-50/50 p-4 rounded-xl space-y-3">
           <div class="flex justify-between items-center">
             <span class="text-xs font-semibold text-slate-700">Dimensions</span>
@@ -232,20 +425,17 @@
           </div>
         </div>
 
-        <!-- GOOGLE DRIVE IMAGE LINK FIELD -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Google Drive Image URL</label>
           <input type="url" id="drive-url" placeholder="https://drive.google.com/file/d/.../view" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none">
           <p class="text-[11px] text-slate-400 mt-1">Paste a shared Google Drive view link for the photo.</p>
         </div>
 
-        <!-- ADDITIONAL DETAILS -->
         <div>
           <label class="block text-xs font-semibold text-slate-600 mb-1">Additional Details / Instructions</label>
           <textarea id="additional-details" rows="3" placeholder="Engraving notes, purity requirements, special patterns..." class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"></textarea>
         </div>
 
-        <!-- STATUS TOGGLES -->
         <div class="grid grid-cols-3 gap-3 pt-2">
           <label class="flex items-center gap-2 p-3 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-50">
             <input type="checkbox" id="sent-to-factory" class="w-4 h-4 text-amber-500 rounded focus:ring-amber-400">
@@ -283,8 +473,8 @@
   <!-- FIREBASE CONFIG MODAL -->
   <div id="config-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl p-6">
-      <h3 class="font-bold text-slate-900 text-lg mb-2">Firebase Firestore Settings</h3>
-      <p class="text-xs text-slate-500 mb-4">Paste your Firebase web app configuration below to sync order data.</p>
+      <h3 class="font-bold text-slate-900 text-lg mb-2">Firebase Settings</h3>
+      <p class="text-xs text-slate-500 mb-4">Paste your Firebase configuration below to sync orders & ledger records across devices.</p>
 
       <div class="space-y-3 text-xs">
         <div>
@@ -317,9 +507,42 @@
     let db = null;
     let viewMode = 'grid';
 
+    // LEDGER ARRAYS
+    let ledgerItems = [];
+    let ledgerSilver = [];
+    let ledgerPayments = [];
+
+    // TAB SWITCHING
+    function switchTab(tab) {
+      const bBtn = document.getElementById('tab-btn-booking');
+      const lBtn = document.getElementById('tab-btn-ledger');
+      const bContent = document.getElementById('tab-content-booking');
+      const lContent = document.getElementById('tab-content-ledger');
+      const newOrderBtn = document.getElementById('new-order-header-btn');
+
+      if (tab === 'booking') {
+        bBtn.className = "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-slate-950 shadow";
+        lBtn.className = "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white";
+        bContent.classList.remove('hidden');
+        lContent.classList.add('hidden');
+        newOrderBtn.style.display = 'flex';
+      } else {
+        lBtn.className = "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold bg-amber-500 text-slate-950 shadow";
+        bBtn.className = "flex items-center gap-2 px-4 py-1.5 rounded-lg text-xs font-semibold text-slate-300 hover:text-white";
+        lContent.classList.remove('hidden');
+        bContent.classList.add('hidden');
+        newOrderBtn.style.display = 'none';
+        renderLedgerAll();
+      }
+    }
+
     // INITIALIZATION
     window.addEventListener('DOMContentLoaded', () => {
       lucide.createIcons();
+      document.getElementById('monthFilter').value = new Date().toISOString().slice(0, 7);
+      document.getElementById('itemDate').valueAsDate = new Date();
+      document.getElementById('silverDate').valueAsDate = new Date();
+      document.getElementById('paymentDate').valueAsDate = new Date();
       initFirebase();
     });
 
@@ -332,6 +555,10 @@
             firebase.initializeApp(config);
           }
           db = firebase.firestore();
+          // Enable auto long polling to fix adblocker/browser issues
+          if (db.settings) {
+            db.settings({ experimentalAutoDetectLongPolling: true });
+          }
           document.getElementById('db-status-dot').className = "w-2 h-2 rounded-full bg-emerald-500";
           listenToFirestore();
         } catch (e) {
@@ -345,13 +572,27 @@
 
     function loadLocalFallback() {
       document.getElementById('db-status-dot').className = "w-2 h-2 rounded-full bg-amber-500";
+      
       const local = localStorage.getItem('silver_orders_backup');
       orders = local ? JSON.parse(local) : [];
       renderOrders();
+
+      const lItems = localStorage.getItem('ledger_items_backup');
+      ledgerItems = lItems ? JSON.parse(lItems) : [];
+      
+      const lSilver = localStorage.getItem('ledger_silver_backup');
+      ledgerSilver = lSilver ? JSON.parse(lSilver) : [];
+      
+      const lPay = localStorage.getItem('ledger_pay_backup');
+      ledgerPayments = lPay ? JSON.parse(lPay) : [];
+
+      renderLedgerAll();
     }
 
     function listenToFirestore() {
       if (!db) return;
+
+      // Sync Orders
       db.collection('orders').onSnapshot(snapshot => {
         orders = [];
         snapshot.forEach(doc => {
@@ -359,10 +600,37 @@
         });
         localStorage.setItem('silver_orders_backup', JSON.stringify(orders));
         renderOrders();
-      }, err => {
-        console.error("Firestore listener error:", err);
-        loadLocalFallback();
-      });
+      }, err => console.error("Orders listener error:", err));
+
+      // Sync Ledger Items
+      db.collection('items').onSnapshot(snapshot => {
+        ledgerItems = [];
+        snapshot.forEach(doc => {
+          ledgerItems.push({ id: doc.id, ...doc.data() });
+        });
+        localStorage.setItem('ledger_items_backup', JSON.stringify(ledgerItems));
+        renderLedgerAll();
+      }, err => console.error("Ledger items error:", err));
+
+      // Sync Ledger Silver Credits
+      db.collection('silver_credits').onSnapshot(snapshot => {
+        ledgerSilver = [];
+        snapshot.forEach(doc => {
+          ledgerSilver.push({ id: doc.id, ...doc.data() });
+        });
+        localStorage.setItem('ledger_silver_backup', JSON.stringify(ledgerSilver));
+        renderLedgerAll();
+      }, err => console.error("Silver credits error:", err));
+
+      // Sync Ledger Payments
+      db.collection('silver_payments').onSnapshot(snapshot => {
+        ledgerPayments = [];
+        snapshot.forEach(doc => {
+          ledgerPayments.push({ id: doc.id, ...doc.data() });
+        });
+        localStorage.setItem('ledger_pay_backup', JSON.stringify(ledgerPayments));
+        renderLedgerAll();
+      }, err => console.error("Silver payments error:", err));
     }
 
     // HELPER: GOOGLE DRIVE LINK CONVERTER
@@ -382,7 +650,7 @@
       return url;
     }
 
-    // RENDER ORDER LIST
+    // RENDER ORDER LIST (BOOKING TAB)
     function renderOrders() {
       const search = document.getElementById('search-input').value.toLowerCase();
       const filterFactory = document.getElementById('filter-factory').value;
@@ -607,7 +875,7 @@
       document.getElementById('stat-weight').innerText = totalWeight.toFixed(2);
     }
 
-    // FORM & DATA ACTIONS
+    // FORM & DATA ACTIONS (BOOKINGS)
     async function handleFormSubmit(e) {
       e.preventDefault();
       const id = document.getElementById('order-id').value;
@@ -765,6 +1033,247 @@
       document.getElementById('view-grid-btn').className = mode === 'grid' ? 'p-2 bg-white text-slate-900 shadow-sm' : 'p-2 text-slate-500';
       document.getElementById('view-table-btn').className = mode === 'table' ? 'p-2 bg-white text-slate-900 shadow-sm' : 'p-2 text-slate-500';
       renderOrders();
+    }
+
+
+    // ================= LEDGER LOGIC =================
+
+    async function addItem() {
+      const date = document.getElementById('itemDate').value;
+      const name = document.getElementById('itemName').value;
+      const fWt = parseFloat(document.getElementById('itemFactoryWt').value) || 0;
+      const sWt = parseFloat(document.getElementById('itemShopWt').value) || 0;
+      const factoryPriceMode = document.getElementById('itemFactoryPriceMode').value;
+      const shopPriceMode = document.getElementById('itemShopPriceMode').value;
+
+      if (!date || !name) return alert('Please enter Date and Item Name');
+
+      let fPrice = (factoryPriceMode === '75') ? fWt * 75 : parseFloat(document.getElementById('itemCustomFactoryPrice').value) || 0;
+      let sPrice = 0;
+
+      if (shopPriceMode === '100') {
+        sPrice = sWt * 100;
+      } else if (shopPriceMode === '110') {
+        sPrice = sWt * 110;
+      } else if (shopPriceMode === 'custom') {
+        sPrice = parseFloat(document.getElementById('itemCustomShopPrice').value) || 0;
+      }
+
+      const newItem = { date, name, fWt, fPrice, sWt, sPrice, factoryPriceMode, shopPriceMode };
+
+      if (db) {
+        await db.collection('items').add(newItem);
+      } else {
+        newItem.id = 'litem_' + Date.now();
+        ledgerItems.push(newItem);
+        localStorage.setItem('ledger_items_backup', JSON.stringify(ledgerItems));
+        renderLedgerAll();
+      }
+
+      document.getElementById('itemName').value = '';
+      document.getElementById('itemFactoryWt').value = '';
+      document.getElementById('itemShopWt').value = '';
+      document.getElementById('itemCustomFactoryPrice').value = '';
+      document.getElementById('itemCustomShopPrice').value = '';
+    }
+
+    async function updateItem(id, field, value) {
+      const item = ledgerItems.find(i => i.id === id);
+      if (!item) return;
+
+      let updatedData = {};
+      if (field === 'name' || field === 'date' || field === 'factoryPriceMode' || field === 'shopPriceMode') {
+        updatedData[field] = value;
+      } else {
+        updatedData[field] = parseFloat(value) || 0;
+      }
+
+      const merged = { ...item, ...updatedData };
+
+      if (merged.factoryPriceMode === '75') {
+        merged.fPrice = merged.fWt * 75;
+      }
+
+      if (merged.shopPriceMode === '100') {
+        merged.sPrice = merged.sWt * 100;
+      } else if (merged.shopPriceMode === '110') {
+        merged.sPrice = merged.sWt * 110;
+      }
+
+      if (db) {
+        await db.collection('items').doc(id).update(merged);
+      } else {
+        const idx = ledgerItems.findIndex(i => i.id === id);
+        if (idx !== -1) ledgerItems[idx] = merged;
+        localStorage.setItem('ledger_items_backup', JSON.stringify(ledgerItems));
+        renderLedgerAll();
+      }
+    }
+
+    async function deleteItem(id) {
+      if (!confirm("Delete ledger item entry?")) return;
+      if (db) {
+        await db.collection('items').doc(id).delete();
+      } else {
+        ledgerItems = ledgerItems.filter(i => i.id !== id);
+        localStorage.setItem('ledger_items_backup', JSON.stringify(ledgerItems));
+        renderLedgerAll();
+      }
+    }
+
+    async function addSilver() {
+      const date = document.getElementById('silverDate').value;
+      const wt = parseFloat(document.getElementById('silverWt').value) || 0;
+      if (!date || !wt) return alert('Enter Date and Silver Weight');
+
+      const entry = { date, wt };
+      if (db) {
+        await db.collection('silver_credits').add(entry);
+      } else {
+        entry.id = 'lsil_' + Date.now();
+        ledgerSilver.push(entry);
+        localStorage.setItem('ledger_silver_backup', JSON.stringify(ledgerSilver));
+        renderLedgerAll();
+      }
+      document.getElementById('silverWt').value = '';
+    }
+
+    async function deleteSilver(id) {
+      if (!confirm("Delete silver credit entry?")) return;
+      if (db) {
+        await db.collection('silver_credits').doc(id).delete();
+      } else {
+        ledgerSilver = ledgerSilver.filter(s => s.id !== id);
+        localStorage.setItem('ledger_silver_backup', JSON.stringify(ledgerSilver));
+        renderLedgerAll();
+      }
+    }
+
+    async function addPayment() {
+      const date = document.getElementById('paymentDate').value;
+      const amount = parseFloat(document.getElementById('paymentAmount').value) || 0;
+      if (!date || !amount) return alert('Enter Date and Payment Amount');
+
+      const entry = { date, amount };
+      if (db) {
+        await db.collection('silver_payments').add(entry);
+      } else {
+        entry.id = 'lpay_' + Date.now();
+        ledgerPayments.push(entry);
+        localStorage.setItem('ledger_pay_backup', JSON.stringify(ledgerPayments));
+        renderLedgerAll();
+      }
+      document.getElementById('paymentAmount').value = '';
+    }
+
+    async function deletePayment(id) {
+      if (!confirm("Delete payment entry?")) return;
+      if (db) {
+        await db.collection('silver_payments').doc(id).delete();
+      } else {
+        ledgerPayments = ledgerPayments.filter(p => p.id !== id);
+        localStorage.setItem('ledger_pay_backup', JSON.stringify(ledgerPayments));
+        renderLedgerAll();
+      }
+    }
+
+    function handlePriceModeChange() {
+      const fMode = document.getElementById('itemFactoryPriceMode').value;
+      const sMode = document.getElementById('itemShopPriceMode').value;
+      document.getElementById('customFactoryField').style.display = (fMode === 'custom') ? 'flex' : 'none';
+      document.getElementById('customShopField').style.display = (sMode === 'custom') ? 'flex' : 'none';
+    }
+
+    function renderLedgerAll() {
+      const monthInput = document.getElementById('monthFilter');
+      if (!monthInput) return;
+      const selectedMonth = monthInput.value;
+
+      const filteredItems = ledgerItems.filter(i => i.date && i.date.startsWith(selectedMonth));
+      const filteredSilver = ledgerSilver.filter(s => s.date && s.date.startsWith(selectedMonth));
+      const filteredPayments = ledgerPayments.filter(p => p.date && p.date.startsWith(selectedMonth));
+
+      // Carry-Over Balances
+      const pastItems = ledgerItems.filter(i => i.date && i.date.slice(0, 7) < selectedMonth);
+      const pastPayments = ledgerPayments.filter(p => p.date && p.date.slice(0, 7) < selectedMonth);
+      const pastSilver = ledgerSilver.filter(s => s.date && s.date.slice(0, 7) < selectedMonth);
+
+      const openingFactoryDue = pastItems.reduce((sum, i) => sum + (i.fPrice || 0), 0) - pastPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const openingSilverDue = pastItems.reduce((sum, i) => sum + (i.fWt || 0), 0) - pastSilver.reduce((sum, s) => sum + (s.wt || 0), 0);
+
+      const currentFactoryWtTotal = filteredItems.reduce((sum, i) => sum + (i.fWt || 0), 0);
+      const currentFactoryTotal = filteredItems.reduce((sum, i) => sum + (i.fPrice || 0), 0);
+      const currentShopTotal = filteredItems.reduce((sum, i) => sum + (i.sPrice || 0), 0);
+      const currentPaymentsTotal = filteredPayments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      const currentSilverGiven = filteredSilver.reduce((sum, s) => sum + (s.wt || 0), 0);
+
+      const closingFactoryDue = openingFactoryDue + currentFactoryTotal - currentPaymentsTotal;
+      const closingSilverDue = openingSilverDue + currentFactoryWtTotal - currentSilverGiven;
+      const netProfit = currentShopTotal - currentFactoryTotal;
+
+      // Item Table
+      const tbody = document.getElementById('itemTableBody');
+      if (tbody) {
+        tbody.innerHTML = filteredItems.map(i => `
+          <tr>
+            <td><input type="date" value="${i.date}" onchange="updateItem('${i.id}', 'date', this.value)"></td>
+            <td><input type="text" value="${i.name}" onchange="updateItem('${i.id}', 'name', this.value)"></td>
+            <td><input type="number" step="0.01" value="${i.fWt}" onchange="updateItem('${i.id}', 'fWt', this.value)"></td>
+            <td>
+              <select onchange="updateItem('${i.id}', 'factoryPriceMode', this.value)">
+                <option value="75" ${i.factoryPriceMode === '75' ? 'selected' : ''}>×75 Rate</option>
+                <option value="custom" ${i.factoryPriceMode === 'custom' ? 'selected' : ''}>Custom Fixed</option>
+              </select>
+            </td>
+            <td><input type="number" value="${i.fPrice}" ${i.factoryPriceMode !== 'custom' ? 'readonly' : ''} onchange="updateItem('${i.id}', 'fPrice', this.value)"></td>
+            <td><input type="number" step="0.01" value="${i.sWt}" onchange="updateItem('${i.id}', 'sWt', this.value)"></td>
+            <td>
+              <select onchange="updateItem('${i.id}', 'shopPriceMode', this.value)">
+                <option value="100" ${i.shopPriceMode === '100' ? 'selected' : ''}>×100 Rate</option>
+                <option value="110" ${i.shopPriceMode === '110' ? 'selected' : ''}>×110 Rate</option>
+                <option value="custom" ${i.shopPriceMode === 'custom' ? 'selected' : ''}>Custom Fixed</option>
+              </select>
+            </td>
+            <td><input type="number" value="${i.sPrice}" ${i.shopPriceMode !== 'custom' ? 'readonly' : ''} onchange="updateItem('${i.id}', 'sPrice', this.value)"></td>
+            <td><button class="btn-danger" onclick="deleteItem('${i.id}')">Delete</button></td>
+          </tr>
+        `).join('');
+      }
+
+      // Silver Table
+      const silverBody = document.getElementById('silverTableBody');
+      if (silverBody) {
+        silverBody.innerHTML = filteredSilver.map(s => `
+          <tr>
+            <td>${s.date}</td>
+            <td>${s.wt} g</td>
+            <td><button class="btn-danger" onclick="deleteSilver('${s.id}')">Delete</button></td>
+          </tr>
+        `).join('');
+      }
+
+      // Payment Table
+      const paymentBody = document.getElementById('paymentTableBody');
+      if (paymentBody) {
+        paymentBody.innerHTML = filteredPayments.map(p => `
+          <tr>
+            <td>${p.date}</td>
+            <td>NPR ${p.amount}</td>
+            <td><button class="btn-danger" onclick="deletePayment('${p.id}')">Delete</button></td>
+          </tr>
+        `).join('');
+      }
+
+      // Update Ledger Dashboard Stats
+      document.getElementById('statFactoryWt').innerText = `${currentFactoryWtTotal.toFixed(2)} g`;
+      document.getElementById('statFactoryDue').innerText = `NPR ${closingFactoryDue.toLocaleString()}`;
+      document.getElementById('statFactoryBreakdown').innerText = `Opening: ${openingFactoryDue.toLocaleString()} | Added: ${currentFactoryTotal.toLocaleString()} | Paid: ${currentPaymentsTotal.toLocaleString()}`;
+
+      document.getElementById('statSilverDue').innerText = `${closingSilverDue.toFixed(2)} g`;
+      document.getElementById('statSilverBreakdown').innerText = `Opening: ${openingSilverDue.toFixed(2)}g | Used: ${currentFactoryWtTotal.toFixed(2)}g | Given: ${currentSilverGiven.toFixed(2)}g`;
+
+      document.getElementById('statNetProfit').innerText = `NPR ${netProfit.toLocaleString()}`;
+      document.getElementById('statProfitBreakdown').innerText = `Shop (${currentShopTotal.toLocaleString()}) - Factory (${currentFactoryTotal.toLocaleString()})`;
     }
   </script>
 </body>
