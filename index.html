@@ -555,7 +555,6 @@
             firebase.initializeApp(config);
           }
           db = firebase.firestore();
-          // Enable auto long polling to fix adblocker/browser issues
           if (db.settings) {
             db.settings({ experimentalAutoDetectLongPolling: true });
           }
@@ -592,7 +591,6 @@
     function listenToFirestore() {
       if (!db) return;
 
-      // Sync Orders
       db.collection('orders').onSnapshot(snapshot => {
         orders = [];
         snapshot.forEach(doc => {
@@ -602,7 +600,6 @@
         renderOrders();
       }, err => console.error("Orders listener error:", err));
 
-      // Sync Ledger Items
       db.collection('items').onSnapshot(snapshot => {
         ledgerItems = [];
         snapshot.forEach(doc => {
@@ -612,7 +609,6 @@
         renderLedgerAll();
       }, err => console.error("Ledger items error:", err));
 
-      // Sync Ledger Silver Credits
       db.collection('silver_credits').onSnapshot(snapshot => {
         ledgerSilver = [];
         snapshot.forEach(doc => {
@@ -622,7 +618,6 @@
         renderLedgerAll();
       }, err => console.error("Silver credits error:", err));
 
-      // Sync Ledger Payments
       db.collection('silver_payments').onSnapshot(snapshot => {
         ledgerPayments = [];
         snapshot.forEach(doc => {
@@ -633,7 +628,6 @@
       }, err => console.error("Silver payments error:", err));
     }
 
-    // HELPER: GOOGLE DRIVE LINK CONVERTER
     function getDriveThumbnail(url) {
       if (!url) return null;
       let fileId = null;
@@ -650,7 +644,6 @@
       return url;
     }
 
-    // RENDER ORDER LIST (BOOKING TAB)
     function renderOrders() {
       const search = document.getElementById('search-input').value.toLowerCase();
       const filterFactory = document.getElementById('filter-factory').value;
@@ -795,7 +788,6 @@
       lucide.createIcons();
     }
 
-    // VIEW SINGLE ORDER
     function viewSingleOrder(id) {
       const item = orders.find(o => o.id === id);
       if (!item) return;
@@ -875,7 +867,6 @@
       document.getElementById('stat-weight').innerText = totalWeight.toFixed(2);
     }
 
-    // FORM & DATA ACTIONS (BOOKINGS)
     async function handleFormSubmit(e) {
       e.preventDefault();
       const id = document.getElementById('order-id').value;
@@ -1036,7 +1027,7 @@
     }
 
 
-    // ================= LEDGER LOGIC =================
+    // ================= LEDGER LOGIC (WITH DATE SORTING) =================
 
     async function addItem() {
       const date = document.getElementById('itemDate').value;
@@ -1189,11 +1180,17 @@
       if (!monthInput) return;
       const selectedMonth = monthInput.value;
 
+      // Filter by selected month
       const filteredItems = ledgerItems.filter(i => i.date && i.date.startsWith(selectedMonth));
       const filteredSilver = ledgerSilver.filter(s => s.date && s.date.startsWith(selectedMonth));
       const filteredPayments = ledgerPayments.filter(p => p.date && p.date.startsWith(selectedMonth));
 
-      // Carry-Over Balances
+      // Sort by Date Descending (Newest first)
+      filteredItems.sort((a, b) => new Date(b.date) - new Date(a.date));
+      filteredSilver.sort((a, b) => new Date(b.date) - new Date(a.date));
+      filteredPayments.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      // Carry-Over Balances (calculating from past months)
       const pastItems = ledgerItems.filter(i => i.date && i.date.slice(0, 7) < selectedMonth);
       const pastPayments = ledgerPayments.filter(p => p.date && p.date.slice(0, 7) < selectedMonth);
       const pastSilver = ledgerSilver.filter(s => s.date && s.date.slice(0, 7) < selectedMonth);
@@ -1211,7 +1208,7 @@
       const closingSilverDue = openingSilverDue + currentFactoryWtTotal - currentSilverGiven;
       const netProfit = currentShopTotal - currentFactoryTotal;
 
-      // Item Table
+      // Item Table Render
       const tbody = document.getElementById('itemTableBody');
       if (tbody) {
         tbody.innerHTML = filteredItems.map(i => `
@@ -1240,7 +1237,7 @@
         `).join('');
       }
 
-      // Silver Table
+      // Silver Table Render
       const silverBody = document.getElementById('silverTableBody');
       if (silverBody) {
         silverBody.innerHTML = filteredSilver.map(s => `
@@ -1252,7 +1249,7 @@
         `).join('');
       }
 
-      // Payment Table
+      // Payment Table Render
       const paymentBody = document.getElementById('paymentTableBody');
       if (paymentBody) {
         paymentBody.innerHTML = filteredPayments.map(p => `
